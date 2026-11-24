@@ -19,8 +19,8 @@ from pathlib import Path
 
 from . import agents as agentmod, harness, models, shots, bounds, config, history, insights, memory, notify, personal, phases, sandbox, security, trust
 from . import build_workflow as buildflow, research_workflow as researchflow
-from . import jobs, delivery, model_policy, relay, task_output, broker, summary_agent, orchestration as orch
-from .tmux import capture, pane_dead, pane_env, send_key, send_text, tail_lines, tmux
+from . import repeat_defect, jobs, delivery, model_policy, relay, task_output, broker, summary_agent, orchestration as orch
+from .tmux import capture, pane_dead, pane_env, send_key, send_text, split, tail_lines, tmux
 from .active_runtime import Counter
 from . import completion_summary
 from . import task_context
@@ -385,8 +385,7 @@ class Session:
                 tmux('set-option', '-t', name, '@duo_run_id', self.st['id'])
                 tmux("set-option", "-w", "-t", name, "remain-on-exit", "on", check=False)
             else:
-                pid = tmux("split-window", *pane_env(), "-h", "-t", panes[self.st["agents"][0]], "-c", str(self.ws),
-                           "-P", "-F", "#{pane_id}", cmd).strip()
+                pid = split(panes[self.st["agents"][0]], str(self.ws), cmd)
             tmux("set-option", "-p", "-t", pid, "@duo_label", self.label(a).upper(), check=False)
             panes[a] = pid
         tmux("select-layout", "-t", name, "even-horizontal", check=False)
@@ -1163,7 +1162,7 @@ class Session:
         s["agent_info"][agent]["cmd"] = cmd
         cmd = agentmod.guarded_command(agent, cmd, self.ws, sandbox.name(s["id"]) if s.get("sandbox_on") else None)
         first = next(iter(s["panes"].values()))
-        pid = tmux("split-window", *pane_env(), "-h", "-t", first, "-c", str(self.ws), "-P", "-F", "#{pane_id}", cmd).strip()
+        pid = split(first, str(self.ws), cmd)
         tmux("set-option", "-p", "-t", pid, "@duo_label", self.label(agent).upper(), check=False)
         tmux("select-layout", "-t", s["worker_session"], "even-horizontal", check=False)
         s["panes"][agent] = pid
@@ -1705,6 +1704,9 @@ class Session:
             return
         if e["kind"] == "critique":
             s["last_verdict"] = reply.verdict
+            prints = s.get("review_prints", []) if reply.verdict != "APPROVED" else []
+            s["review_prints"] = (prints + ([repeat_defect.fingerprint(reply.prose)] if reply.verdict != "APPROVED" else []))[-repeat_defect.LOOP_AFTER:]
+            s.pop("repeat_defect", None)
         elif e["kind"] == "secure":
             high = [x for x in reply.security if isinstance(x, dict) and str(x.get("severity", "")).lower() == "high"]
             s["secure_ok"] = reply.verdict == "APPROVED" and not high and not s.get("sec_blocked")
@@ -1866,7 +1868,10 @@ class Session:
             self.save()
             return
         if step == "stalled":
-            if s.get("stall", 0) >= phases.STALL_LIMIT:
+            if s.get("repeat_defect"):
+                why = ("the reviewer has raised the same defect %d times in a row and the builder is not fixing it. "
+                       "It is probably something only you can change, such as a file outside this project" % repeat_defect.LOOP_AFTER)
+            elif s.get("stall", 0) >= phases.STALL_LIMIT:
                 why = "the last %d build or revise turns changed no files%s" % (
                     phases.STALL_LIMIT, ", and a security block is still open" if s.get("sec_blocked") else "")
             else:

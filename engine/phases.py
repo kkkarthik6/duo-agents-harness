@@ -9,7 +9,7 @@ issue, a "gate:<name>" request, "pause", "stalled" when the run must stop and as
 user, or "done".
 """
 from dataclasses import dataclass, field
-from . import relay
+from . import relay, repeat_defect
 
 
 @dataclass
@@ -151,6 +151,9 @@ def next_turns(state):
             state["phase"] = "verify"
             return [Turn(roles["verifier"], "verify", "verify", [state["chosen"]])]
         if state["round"] >= state["max_rounds"]:
+            return "stalled"
+        if repeat_defect.looping(state.get("review_prints", [])):
+            state["repeat_defect"] = True
             return "stalled"
         state["round"] += 1
         return _deep(state, "revise")

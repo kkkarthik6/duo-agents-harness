@@ -6,7 +6,7 @@ import secrets
 from pathlib import Path
 
 from . import agents as agentmod, config, cli_adapters
-from .tmux import capture, pane_dead, pane_env, send_key, send_text, tmux
+from .tmux import capture, pane_dead, pane_env, send_key, send_text, split, tmux
 from . import pane as panectl
 
 
@@ -53,7 +53,7 @@ class TmuxDriver:
                 pid = tmux("new-session", *pane_env(), "-d", "-s", self.name, "-x", "240", "-y", "60", "-c", str(cwd), "-P", "-F", "#{pane_id}", cmd).strip()
                 tmux("set-option", "-w", "-t", self.name, "remain-on-exit", "on", check=False)
             else:
-                pid = tmux("split-window", *pane_env(), "-h", "-t", self.panes[agents[0]], "-c", str(cwd), "-P", "-F", "#{pane_id}", cmd).strip()
+                pid = split(self.panes[agents[0]], str(cwd), cmd)
             tmux("set-option", "-p", "-t", pid, "@duo_label", "Worker %d" % (i + 1), check=False)
             self.panes[a] = pid
             self.folders[a] = Path(cwd)
@@ -79,7 +79,7 @@ class TmuxDriver:
         cmd = agentmod.launch_command(agent, getattr(self, "commands", {}).get(agent, spec.get("auto", agent)))
         cmd = agentmod.guarded_command(agent, cmd, cwd)
         original = self.panes[agent]
-        pid = tmux("split-window", *pane_env(), "-h", "-t", original, "-c", str(cwd), "-P", "-F", "#{pane_id}", cmd).strip()
+        pid = split(original, str(cwd), cmd)
         self.review_panes[agent] = (original, self.model_now.pop(agent, None), self.folders.get(agent))
         self.panes[agent] = pid
         self.folders[agent] = Path(cwd)

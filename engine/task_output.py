@@ -121,6 +121,12 @@ def relative_file(session_dir, folder, task_id, number, actor, suffix=""):
     return os.path.relpath(Path(folder) / filename(task_id, number, actor, suffix), session_dir)
 
 
+def _link(path):
+    """A markdown link destination: spaces and brackets in a path must be escaped or the link is broken."""
+    from urllib.parse import quote
+    return quote(str(path).replace(os.sep, "/"), safe="/._-~")
+
+
 def index(root, folder, assignment, outputs=()):
     """Keep a broker-owned index; never replace the agent's contents.md."""
     from datetime import datetime
@@ -134,9 +140,9 @@ def index(root, folder, assignment, outputs=()):
     index_path.write_text(json.dumps(records, indent=2) + "\n")
     lines = ["# Task outcomes", "", "Read the latest handoff and its referenced files. A saved handoff is not product approval.", ""]
     for row in records:
-        lines.append("- [%s: %s](%s), saved %s" % (row["task_id"], row["role"], row["reply"], row["saved"]))
+        lines.append("- [%s: %s](%s), saved %s" % (row["task_id"], row["role"], _link(row["reply"]), row["saved"]))
         for output in row["outputs"]:
-            lines.append("  - [%s](%s)" % (output, os.path.relpath(Path(root) / output, folder)))
+            lines.append("  - [%s](%s)" % (output, _link(os.path.relpath(Path(root) / output, folder))))
     (folder / "handoffs.md").write_text("\n".join(lines) + "\n")
     contents = folder / "contents.md"
     marker = "<!-- Duo outcome index -->"

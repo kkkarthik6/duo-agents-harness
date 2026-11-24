@@ -33,6 +33,19 @@ def tmux(*args, check=True):
     return r.stdout
 
 
+def split(target, cwd, cmd):
+    """Start a worker beside `target` and return its pane id. A window that has run out of room gets a new window
+    in the same session instead of failing the run."""
+    base = ["-t", target, "-c", str(cwd), "-P", "-F", "#{pane_id}"]
+    for flag in ("-h", "-v"):
+        try:
+            return tmux("split-window", *pane_env(), flag, *base, cmd).strip()
+        except RuntimeError as error:
+            if "no space" not in str(error):
+                raise
+    return tmux("new-window", *pane_env(), "-d", *base, cmd).strip()
+
+
 def capture(pane, lines=0):
     """lines=0 captures only what is on screen now (no scrollback)."""
     args = ["capture-pane", "-p", "-J", "-t", pane] + (["-S", "-%d" % lines] if lines else [])
