@@ -1,0 +1,38 @@
+{
+  "name": "duo-agents",
+  "version": "1.19.4",
+  "description": "Duo: plan, review, build and review again across your Claude, Codex and Antigravity CLIs.",
+  "bin": {
+    "duo-agents": "npm/cli.js"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "files": [
+    "npm",
+    "bin",
+    "engine",
+    "web",
+    "rubrics",
+    "scripts/install_core.py",
+    "scripts/update_desktop_launcher.py",
+    "scripts/desktop_launcher.py",
+    "tests/__init__.py",
+    "tests/contract",
+    "install.sh",
+    "CORE_VERSION",
+    "VERSION",
+    "README.md",
+    "skills",
+    "LICENSE"
+  ],
+  "keywords": [
+    "ai",
+    "agents",
+    "claude",
+    "codex",
+    "multi-agent",
+    "cli"
+  ],
+  "license": "MIT"
+}

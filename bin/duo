@@ -1,0 +1,486 @@
+#!/usr/bin/env python3
+"""duo: open the Duo app, start a task, or set things up.
+
+  duo                 open Duo
+  duo "task text"     start a task and open Duo
+  duo setup [--yes]   install what is missing (tmux, Rust, Docker) and build the Mac app
+  duo doctor          show what Duo can find
+  duo repair-codex    fix a Codex config that does not load (shows what it would change; add --apply to do it)
+  duo models          refresh installed CLIs and show their reported model choices
+  duo version         show your Duo version and the core version
+  duo update --from <folder|file.tgz>
+                      install a new Duo core safely: test it, check your features, then switch
+  duo core            show the core version and check that its files are unchanged
+  duo core go-back    switch back to the previous core
+  duo serve           run the engine in this terminal
+  duo serve-bg        start the engine in the background (used by the app)
+  duo quit            stop the engine and close all agents (the app does this when you quit it)
+"""
+import json
+import os
+import shutil
+import subprocess
+import sys
+import time
+import urllib.request
+from pathlib import Path
+
+REQUIRED_PYTHON = (3, 13)
+# Where a Python 3.13 install usually lives on a Mac (Homebrew, python.org, or the PATH).
+PYTHON_CANDIDATES = ["/opt/homebrew/bin/python3.13", "/usr/local/bin/python3.13",
+                     "/Library/Frameworks/Python.framework/Versions/3.13/bin/python3.13"]
+
+# Duo needs Python 3.13. When this runs under an older Python (the Xcode copy on macOS is 3.9),
+# hand over to a 3.13 install. This code must stay valid for older Pythons until this check runs.
+if sys.version_info < REQUIRED_PYTHON:
+    found = next((c for c in PYTHON_CANDIDATES if os.path.exists(c)), None) or shutil.which("python3.13")
+    if found:
+        os.execv(found, [found, os.path.realpath(__file__)] + sys.argv[1:])
+    how = ("brew install python@3.13" if sys.platform == "darwin" else
+           "sudo apt install python3.13  (or: uv python install 3.13)")
+    sys.exit("Duo needs Python %d.%d or newer. This is Python %s. Install it (%s) and run duo again."
+             % (REQUIRED_PYTHON + (sys.version.split()[0], how)))
+
+BUNDLED = Path(os.path.realpath(__file__)).parent.parent     # the source that came with this install
+DUO_HOME = Path(os.environ.get("DUO_HOME") or Path.home() / "Duo")
+
+
+def _active_dir():
+    """The code to run: the current sealed core in ~/Duo/core. Falls back to this copy (a checkout or an
+    unpacked archive) when no core is installed yet."""
+    sys.path.insert(0, str(BUNDLED))
+    try:
+        from engine import coremgr
+        cur = coremgr.current_dir(DUO_HOME)
+        return cur if cur and (cur / "bin" / "duo").exists() else BUNDLED
+    except Exception as ex:
+        print("Duo could not read its core state (%s). Running this copy." % ex, file=sys.stderr)
+        return BUNDLED
+    finally:
+        sys.path.pop(0)
+
+
+APP_DIR = _active_dir()                                    # .../_duo, or the version being run
+PORT = 8787
+HOME = Path.home()
+APP_PATHS = [HOME / "Applications" / "Duo.app", Path("/Applications/Duo.app")]
+# The pattern must not start with "-": pkill would read it as an option and stop nothing.
+PKILL_ENGINE = ["pkill", "-f", "[-]m engine serve"]
+TOOL_DIRS = ["/opt/homebrew/bin", "/usr/local/bin", "{h}/.local/bin", "{h}/.npm-global/bin", "{h}/.cargo/bin",
+             "/usr/bin", "/bin", "/usr/sbin", "/sbin"]
+
+
+def say(msg):
+    print(msg, flush=True)
+
+
+# ------------------------------------------------------------------ engine
+def code_id():
+    sys.path.insert(0, str(APP_DIR))
+    from engine.config import code_id as cid
+    return cid()
+
+
+def engine_code(port=PORT):
+    """The running engine's code fingerprint, or None when no engine answers."""
+    try:
+        with urllib.request.urlopen("http://127.0.0.1:%d/api/health" % port, timeout=1) as r:
+            body = json.loads(r.read())
+            return body.get("code", "") if body.get("ok") is True else None
+    except Exception:
+        return None
+
+
+def health(port=PORT):
+    return engine_code(port) is not None
+
+
+def stop_engine(port=PORT, run=subprocess.run):
+    try:
+        post_json(port, "/api/shutdown", {})
+    except Exception:
+        pass
+    for _ in range(40):
+        if engine_code(port) is None:
+            return
+        time.sleep(0.25)
+    run(PKILL_ENGINE, capture_output=True)                 # engines from before /api/shutdown existed
+    for _ in range(20):
+        if engine_code(port) is None:
+            return
+        time.sleep(0.25)
+
+
+def login_path():
+    """PATH from the user's shell. Apps opened from Finder get a bare PATH without Homebrew or npm."""
+    shell = os.environ.get("SHELL", "/bin/zsh")
+    try:
+        r = subprocess.run([shell, "-lic", 'printf "\\n%s" "$PATH"'], capture_output=True, text=True, timeout=5)
+        return r.stdout.strip().splitlines()[-1] if r.stdout.strip() else ""
+    except Exception:
+        return ""
+
+
+def engine_env():
+    env = dict(os.environ)
+    h = env.get("HOME", str(HOME))
+    parts = [p for p in login_path().split(":") if p] + [d.format(h=h) for d in TOOL_DIRS] + env.get("PATH", "").split(":")
+    env["PATH"] = ":".join(dict.fromkeys(p for p in parts if p))
+    return env
+
+
+def spawn_engine(port=PORT):
+    log = HOME / "Duo Workouts" / ".duo-engine.log"
+    log.parent.mkdir(parents=True, exist_ok=True)
+    subprocess.Popen([sys.executable, "-m", "engine", "serve", str(port)], cwd=str(APP_DIR), env=engine_env(),
+                     stdout=log.open("a"), stderr=subprocess.STDOUT, stdin=subprocess.DEVNULL, start_new_session=True)
+
+
+def ensure_engine(port=PORT, spawn=None, wait=10):
+    want, running = code_id(), engine_code(port)
+    if running == want:
+        return True
+    if running is not None:                 # an older engine is running: replace it (agents in tmux keep going)
+        stop_engine(port)
+    (spawn or spawn_engine)(port)
+    for _ in range(int(wait / 0.25)):
+        if engine_code(port) == want:
+            return True
+        time.sleep(0.25)
+    return False
+
+
+def post_json(port, path, body):
+    req = urllib.request.Request("http://127.0.0.1:%d%s" % (port, path), data=json.dumps(body).encode(),
+                                 headers={"Content-Type": "application/json"})
+    with urllib.request.urlopen(req, timeout=10) as r:
+        return json.loads(r.read())
+
+
+def tmux_name():
+    sys.path.insert(0, str(APP_DIR))
+    from engine.config import CFG
+    return CFG["tmux_session"]
+
+
+def quit_all(port=PORT, run=subprocess.run):
+    """Quitting Duo forgets everything: stop the engine and close every agent."""
+    try:
+        post_json(port, "/api/quit", {})
+        for _ in range(20):
+            if engine_code(port) is None:
+                break
+            time.sleep(0.25)
+    except Exception:
+        stop_engine(port)
+    run(["tmux", "kill-session", "-t", tmux_name()], capture_output=True)
+
+
+def open_ui(port=PORT, run=subprocess.run, app_paths=None):
+    app = next((p for p in (app_paths or APP_PATHS) if p.exists()), None)
+    url = "http://127.0.0.1:%d" % port
+    if sys.platform == "darwin":
+        run(["open", str(app)] if app else ["open", url])
+        return
+    opener = next((c for c in ("wslview", "xdg-open") if shutil.which(c)), None)
+    if opener:
+        run([opener, url], capture_output=True)
+    else:
+        say("Open %s in your browser." % url)
+
+
+# ------------------------------------------------------------------- setup
+def have(cmd):
+    return shutil.which(cmd, path=engine_env()["PATH"])
+
+
+def run(cmd, **kw):
+    say("  $ " + (cmd if isinstance(cmd, str) else " ".join(cmd)))
+    return subprocess.run(cmd, shell=isinstance(cmd, str), env=engine_env(), **kw)
+
+
+def write_icon(path, size=1024):
+    """Two overlapping discs, the Duo mark, written as a PNG with the standard library."""
+    import struct
+    import zlib
+    claude, codex, bg = (168, 106, 18), (14, 116, 104), (237, 240, 243)
+    r, cy, c1, c2 = size * 0.25, size / 2, size * 0.39, size * 0.61
+    m, rad = size * 0.09, size * 0.2                          # macOS-style margin and corner radius
+    rows = []
+    for y in range(size):
+        row = bytearray([0])
+        for x in range(size):
+            qx, qy = max(m + rad - x, 0, x - (size - m - rad)), max(m + rad - y, 0, y - (size - m - rad))
+            if x < m or y < m or x > size - m or y > size - m or qx * qx + qy * qy > rad * rad:
+                row += b"\x00\x00\x00\x00"
+                continue
+            in1 = (x - c1) ** 2 + (y - cy) ** 2 <= r * r
+            in2 = (x - c2) ** 2 + (y - cy) ** 2 <= r * r
+            if in1 and in2:
+                px = tuple((a + b) // 2 for a, b in zip(claude, codex))
+            else:
+                px = claude if in1 else codex if in2 else bg
+            row += bytes(px) + b"\xff"
+        rows.append(bytes(row))
+
+    def chunk(tag, data):
+        return struct.pack(">I", len(data)) + tag + data + struct.pack(">I", zlib.crc32(tag + data) & 0xFFFFFFFF)
+
+    png = b"\x89PNG\r\n\x1a\n" + chunk(b"IHDR", struct.pack(">IIBBBBB", size, size, 8, 6, 0, 0, 0)) \
+        + chunk(b"IDAT", zlib.compress(b"".join(rows), 9)) + chunk(b"IEND", b"")
+    Path(path).write_bytes(png)
+
+
+def setup():
+    if sys.platform != "darwin":
+        say("The Duo app is built on macOS only. On Linux and WSL, Duo runs in your browser:")
+        say("  duo        (starts Duo and opens http://127.0.0.1:%d)" % PORT)
+        return doctor()
+    missing = []
+    if subprocess.run(["xcode-select", "-p"], capture_output=True).returncode != 0:
+        missing.append("Xcode Command Line Tools")
+    if not have("tmux"):
+        missing.append("tmux")
+    if not have("cargo"):
+        missing.append("Rust (rustup)")
+    say("Duo setup")
+    if missing:
+        say("Missing: " + ", ".join(missing))
+        if "--yes" not in sys.argv and input("Install missing tools? [y/N] ").strip().lower() != "y":
+            say("Nothing installed.")
+            return 1
+    if "Xcode Command Line Tools" in missing:
+        run(["xcode-select", "--install"])
+        say("Finish the Apple installer window. Duo waits for it.")
+        while subprocess.run(["xcode-select", "-p"], capture_output=True).returncode != 0:
+            time.sleep(10)
+    if "tmux" in missing:
+        if not have("brew"):
+            say("Install Homebrew first (https://brew.sh), then run duo setup again:")
+            say('  /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"')
+            return 1
+        run(["brew", "install", "tmux"], check=True)
+    if "Rust (rustup)" in missing:
+        run("curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y", check=True)
+
+    if not have("docker") and have("brew"):
+        say("Docker is not installed. Duo uses it to install each project's tools safely.")
+        if "--yes" in sys.argv or input("Install Docker Desktop? [y/N] ").strip().lower() == "y":
+            run(["brew", "install", "--cask", "docker"])
+            run(["open", "-a", "Docker"])
+            say("Docker Desktop is starting. Accept its prompts once. Duo works without it, but installs then need your approval.")
+    say("Building the Duo app. The first build takes a few minutes.")
+    app = APP_DIR / "app"
+    icons = app / "src-tauri" / "icons"
+    icons.mkdir(parents=True, exist_ok=True)
+    src_png = icons / "source.png"
+    if not src_png.exists():
+        write_icon(src_png)
+    # ponytail: npx uses the prebuilt Tauri CLI (seconds); cargo install compiles it (minutes). Fallback only.
+    tauri = ["npx", "--yes", "@tauri-apps/cli@^2"] if have("npx") else ["cargo", "tauri"]
+    if tauri[0] == "cargo" and run(["cargo", "tauri", "--version"], capture_output=True).returncode != 0:
+        run(["cargo", "install", "tauri-cli", "--version", "^2", "--locked"], check=True)
+    run(tauri + ["icon", str(src_png)], cwd=str(app / "src-tauri"), check=True)
+    run(tauri + ["build", "--bundles", "app"], cwd=str(app), check=True)
+    built = next((app / "src-tauri" / "target" / "release" / "bundle" / "macos").glob("*.app"), None)
+    if not built:
+        say("The build finished but Duo.app was not found.")
+        return 1
+    dest = HOME / "Applications" / "Duo.app"
+    dest.parent.mkdir(exist_ok=True)
+    shutil.rmtree(dest, ignore_errors=True)
+    shutil.copytree(built, dest, symlinks=True)
+    say("Duo.app installed in %s" % dest.parent)
+
+    shim = HOME / ".local" / "bin" / "duo"
+    shim.parent.mkdir(parents=True, exist_ok=True)
+    if shim.is_symlink() or shim.exists():
+        shim.unlink()
+    shim.symlink_to(Path(os.path.realpath(__file__)))
+    zshrc = HOME / ".zshrc"
+    line = 'export PATH="$HOME/.local/bin:$PATH"'
+    if line not in (zshrc.read_text() if zshrc.exists() else ""):
+        with zshrc.open("a") as f:
+            f.write("\n# Duo\n%s\n" % line)
+        say("Added ~/.local/bin to your PATH in ~/.zshrc. Open a new Terminal window to use 'duo'.")
+    return doctor()
+
+
+def doctor():
+    sys.path.insert(0, str(APP_DIR))
+    os.environ["PATH"] = engine_env()["PATH"]
+    from engine import agents
+    say("Python      %s" % sys.version.split()[0])
+    say("tmux        %s" % (have("tmux") or "missing: " + ("brew install tmux" if sys.platform == "darwin" else "sudo apt install tmux")))
+    found = agents.detect()
+    from engine import cli_adapters
+    specs = dict(agents.AGENT_SPECS)
+    for aid, adapter in cli_adapters.registry().items():
+        specs.setdefault(aid, {'label': adapter.label})
+    for aid, spec in specs.items():
+        a = next((x for x in found if x.id == aid), None)
+        say("%-11s %s" % (spec["label"], a.version if a else "not found"))
+        if a and a.capability_check:
+            say('  role worker: ' + ('ready' if a.capability_check['ready'] else 'required CLI flags missing'))
+    if not found:
+        say("No agent CLIs found. Install Claude Code, Codex or Antigravity, then sign in once in Terminal.")
+    from engine import sandbox
+    ok, msg = sandbox.available()
+    say("Docker      %s" % ("running" if ok else msg))
+    from engine import codex_config
+    problem = codex_config.check()
+    if problem:
+        say("Codex config  PROBLEM: " + problem)
+    say("Engine      %s" % ("running on port %d" % PORT if health() else "not running"))
+    if sys.platform == "darwin":
+        app = next((p for p in APP_PATHS if p.exists()), None)
+        say("App         %s" % (app or "not built: run duo setup"))
+    return 0 if found and have("tmux") else 1
+
+
+# -------------------------------------------------------------------- main
+def _engine_mods():
+    sys.path.insert(0, str(APP_DIR))
+    from engine import coremgr, userspace
+    return coremgr, userspace
+
+
+def version():
+    """Your Duo's number and the core's number, for example: 3.0.0 · core 1.0.0."""
+    try:
+        coremgr, userspace = _engine_mods()
+        core = coremgr.info(DUO_HOME).get("version")
+        if not (DUO_HOME / "user-versions.json").exists():
+            return "not set up yet (run install.sh)"
+        return "%s · core %s" % (userspace.load(DUO_HOME)["number"], core or "not installed")
+    except Exception:
+        p = APP_DIR / "VERSION"
+        return p.read_text().strip() if p.exists() else "unknown"
+
+
+def _source(arg):
+    """A folder, or a .tgz unpacked into a new temporary folder. Returns the folder that holds CORE_VERSION."""
+    p = Path(os.path.expanduser(arg)).resolve()
+    if p.is_dir():
+        return p
+    if p.is_file() and p.name.endswith((".tgz", ".tar.gz")):
+        import tarfile
+        import tempfile
+        dest = Path(tempfile.mkdtemp(prefix="duo-update-"))
+        with tarfile.open(p) as t:
+            t.extractall(dest, filter="data")
+        hits = [c.parent for c in dest.rglob("CORE_VERSION")]
+        if hits:
+            return min(hits, key=lambda h: len(h.parts))
+    raise SystemExit("Duo cannot read %s. Give a Duo folder or a .tgz file." % arg)
+
+
+def update(argv=()):
+    """Install a new core beside the current one. Its core tests and your features' tests run first."""
+    args = list(argv)
+    if "--from" not in args or args.index("--from") + 1 >= len(args):
+        say("Tell Duo where the new version is: duo update --from <folder or file.tgz>")
+        say("Or run install.sh from the new Duo folder. Both keep your features and runs.")
+        return 1
+    src = _source(args[args.index("--from") + 1])
+    coremgr, _ = _engine_mods()
+    say("Checking the new core. This runs its core tests and your features' tests.")
+    r = coremgr.update(src, DUO_HOME)
+    say(r["detail"])
+    if r["status"] == "updated":
+        say("Run `duo quit`, then `duo`, to load it.")
+        for n in r["disabled"]:
+            say("Feature %s is off for now. Duo is fixing it in a copy and turns it on when the fix passes." % n)
+    return 3 if r["status"] == "core_failed" else 0
+
+
+def core_cmd(argv):
+    coremgr, _ = _engine_mods()
+    if argv[:1] == ["go-back"]:
+        say("Switched to core %s. Run `duo quit`, then `duo`, to load it." % coremgr.go_back(DUO_HOME))
+        return 0
+    i = coremgr.info(DUO_HOME)
+    if not i.get("version"):
+        say("No sealed core is installed. Run install.sh from the Duo folder.")
+        return 1
+    say("Core %s in %s" % (i["version"], i["dir"]))
+    say("Contract %s. Earlier core: %s." % (i["contract"], i.get("previous") or "none"))
+    changed = coremgr.verify(DUO_HOME)
+    if changed:
+        say("These core files were changed by hand: %s" % ", ".join(changed[:10]))
+        say("Run duo update --from <the Duo folder> to put them back.")
+        return 2
+    say("All core files are unchanged.")
+    return 0
+
+
+def repair_codex(argv):
+    sys.path.insert(0, str(APP_DIR))
+    from engine import codex_config
+    if not codex_config.check() and "--apply" not in argv:
+        say("Your Codex config loads fine.")
+    report = codex_config.repair(apply="--apply" in argv)
+    say("%s: %d throwaway test folders and %d broken fragments %s; %d real project entries kept."
+        % (report["file"], report["removed_test_folders"], len(report["removed_fragments"]),
+           "removed" if report["applied"] else "would be removed", report["projects_kept"]))
+    if report["applied"]:
+        say("Backup of the old file: " + report["backup"])
+    elif report["removed_test_folders"] or report["removed_fragments"]:
+        say("Nothing was changed. Run `duo repair-codex --apply` to make the change (a backup is kept).")
+    return 0
+
+
+def main(argv):
+    cmd = argv[0] if argv else ""
+    if cmd in ("-h", "--help", "help"):
+        say(__doc__.strip())
+        return 0
+    if cmd == "version":
+        say("Duo " + version())
+        return 0
+    if cmd == "update":
+        return update(argv[1:])
+    if cmd == "core":
+        return core_cmd(argv[1:])
+    if cmd == "setup":
+        return setup()
+    if cmd == "doctor":
+        return doctor()
+    if cmd == "repair-codex":
+        return repair_codex(argv[1:])
+    if cmd == 'models':
+        os.environ['PATH'] = engine_env()['PATH']
+        sys.path.insert(0, str(APP_DIR))
+        from engine import model_discovery, model_catalog
+        snapshot = model_discovery.refresh(force=True)
+        rows = model_discovery.catalog(snapshot, model_catalog.entries())
+        say('Checked: ' + time.strftime('%Y-%m-%d %H:%M %Z (%z)', time.localtime(snapshot['checked_at'])))
+        for cli in snapshot['clis']:
+            say(cli['id'] + ': ' + cli['status'])
+            for row in (r for r in rows if r['cli'] == cli['id']):
+                say('  %-32s %s' % (row['id'], row['tier'] or 'needs tier'))
+        say('CLI-reported choices; quota and inference access are checked when used.')
+        return 0 if any(c['status'] == 'ready' for c in snapshot['clis']) else 1
+    if cmd == "serve":
+        os.chdir(APP_DIR)
+        os.environ["PATH"] = engine_env()["PATH"]
+        sys.path.insert(0, str(APP_DIR))
+        from engine.server import serve
+        serve(PORT)
+        return 0
+    if cmd == "quit":
+        quit_all(PORT)
+        return 0
+    if cmd == "serve-bg":
+        return 0 if ensure_engine(PORT) else 1
+    if not ensure_engine(PORT):
+        say("Duo could not start its engine. See ~/Duo Workouts/.duo-engine.log")
+        return 1
+    if argv:
+        post_json(PORT, "/api/start", {"task": " ".join(argv)})
+    open_ui(PORT)
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main(sys.argv[1:]))

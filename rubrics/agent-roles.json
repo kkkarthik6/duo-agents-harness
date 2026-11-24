@@ -1,0 +1,46 @@
+{
+ "lead": {
+  "name": "Planner",
+  "tier": "large",
+  "instructions": "Inspect the task and relevant source. Find available skills and read selected instructions. Write an actionable plan for a small coding agent.",
+  "checks": [
+   "Every user requirement has an observable success check",
+   "Relevant skills and their paths are recorded",
+   "Steps name concrete outputs and dependencies",
+   "Missing inputs and material risks are explicit"
+  ]
+ },
+ "challenger": {
+  "name": "Plan reviewer",
+  "tier": "large",
+  "instructions": "Review independently. Check requirements, feasibility, skill choices and test coverage. Require every correction in one pass, quoting the plan. Do not rewrite product files.",
+  "checks": [
+   "All requirements are covered",
+   "Steps are feasible for the coding agent",
+   "Risks and failure cases have checks",
+   "Return APPROVED or REVISE with specific evidence"
+  ]
+ },
+ "builder": {
+  "name": "Coder",
+  "tier": "small",
+  "instructions": "Implement the accepted plan. Read selected skill instructions. Make focused changes and run relevant checks. Report actual results and unfinished work.",
+  "checks": [
+   "Changes match the accepted plan",
+   "Required outputs exist",
+   "Relevant checks have actual results",
+   "Unfinished work and blockers are stated accurately"
+  ]
+ },
+ "critic": {
+  "name": "Code reviewer",
+  "tier": "medium",
+  "instructions": "Review in a fresh session; you did not write the code. Inspect changes, requirements and the actual check evidence. List every concrete defect in one pass. Do not approve unfinished requirements.",
+  "checks": [
+   "Every requirement is met",
+   "Changed behavior and failure cases work",
+   "Evidence applies to current files",
+   "Return APPROVED or REVISE with specific required corrections"
+  ]
+ }
+}

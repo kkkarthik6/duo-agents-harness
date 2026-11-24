@@ -1,0 +1,1753 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Duo</title>
+<style>
+:root {
+  color-scheme: light;
+  --bg: #EDF0F3; --panel: #F8F9FB; --raised: #FFFFFF; --ink: #1B2230; --quiet: #687385; --faint: #9AA3B0;
+  --rule: #D6DBE2; --rule-soft: #E4E8ED;
+  --claude: #A86A12; --codex: #0E7468; --agy: #5B45E0; --human: #3A4352; --system: #687385;
+  --signal: #F5C518; --signal-ink: #5A4500; --good: #1F7A4A; --bad: #B4322A;
+  --ui: -apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif;
+  --serif: ui-serif, "New York", "Iowan Old Style", Georgia, serif;
+  --code: ui-monospace, "SF Mono", Menlo, monospace;
+  --r-s: 6px; --r-m: 10px;
+}
+@media (prefers-color-scheme: dark) {
+  :root { color-scheme: dark; --bg: #14181F; --panel: #1A1F27; --raised: #212733; --ink: #E7EAF0; --quiet: #9AA4B4; --faint: #6B7586;
+    --rule: #2D3440; --rule-soft: #252B36; --claude: #E0A040; --codex: #3CC2AE; --agy: #9B8CFF; --human: #C9CFDA;
+    --signal-ink: #1B1500; --good: #4CC487; --bad: #F07468; }
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; height: 100%; }
+body { font: 14px/1.5 var(--ui); color: var(--ink); background: var(--bg); font-feature-settings: "tnum";
+  display: grid; grid-template-rows: auto auto minmax(0, 1fr); overflow: hidden; -webkit-font-smoothing: antialiased; }
+button, input, select, textarea { font: inherit; color: inherit; }
+button { cursor: pointer; background: var(--raised); }
+input:not([type=checkbox]):not([type=radio]):not([type=range]):not([type=color]), select, textarea {
+  color: var(--ink); background-color: var(--raised); caret-color: var(--ink); }
+input::placeholder, textarea::placeholder { color: var(--quiet); opacity: 1; }
+select option { color: var(--ink); background: var(--raised); }
+:focus-visible { outline: 2px solid var(--agy); outline-offset: 2px; border-radius: 4px; }
+.sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+
+/* ---------- top bar ---------- */
+header { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 18px; align-items: center;
+  padding: 12px 20px 12px 16px; background: var(--panel); border-bottom: 1px solid var(--rule); }
+.brand { display: flex; align-items: center; gap: 10px; }
+.brand svg { display: block; }
+.duo-ver { font-size: 12px; opacity: .7; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.kind { border: 0; padding: 0; margin: 8px 0 0; display: grid; gap: 6px; }
+.kind legend { padding: 0; margin-bottom: 4px; }
+.badge.auto { display: inline-block; font-size: 11px; padding: 1px 8px; border-radius: 99px; border: 1px solid var(--codex); color: var(--codex); margin-left: 4px; }
+.item.autofix { border-left: 3px solid var(--codex); border-radius: 0; padding-left: 8px; }
+.item.off { border-left: 3px solid var(--warn, #b45309); border-radius: 0; padding-left: 8px; }
+.sheet .item .top { align-items: flex-start; }
+.sheet .item .top > .btn, .sheet .item .top > .badge { white-space: nowrap; flex: none; }
+.vshots { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 4px; }
+.vshot { width: 180px; height: auto; border: 1px solid var(--rule); border-radius: var(--r-s); display: block; }
+.duo-now.trial { padding: 8px 10px; border: 1px solid var(--codex); border-radius: 10px; }
+.duo-now { margin: 0; display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.warn { color: var(--warn, #b45309); }
+.slot-header { display: inline-flex; gap: 6px; align-items: center; }
+.slot-home:empty, .slot-settings:empty, .slot-run-side:empty { display: none; }
+.slot-panel { margin: 8px 0; }
+.home { overflow: auto; height: 100%; }
+.home-inner { max-width: 880px; margin: 0 auto; padding: 28px 24px 48px; }
+.home-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 8px; }
+.home-head h2 { margin: 0; font: 500 24px/1.2 var(--serif); }
+.home-taskmaps { margin: 20px 0; border: 1px solid var(--rule); border-radius: var(--r-s); padding: 14px; }
+.home-taskmaps > summary { cursor: pointer; font-weight: 600; }
+.home-taskmaps p { color: var(--quiet); }
+.home-taskmap { display: flex; align-items: center; flex-wrap: wrap; gap: 12px; padding: 12px 0; border-top: 1px solid var(--rule); }
+.home-taskmap > div { flex: 1 1 220px; min-width: 0; overflow-wrap: anywhere; }
+.home-taskmap strong { display: block; }
+#featureNav:empty { display: none; }
+.side .new.fnav { border-style: solid; }
+.side .new.fnav.on { background: var(--raised); color: var(--ink); border-color: var(--quiet); }
+.icon-btn { border: 1px solid transparent; background: none; border-radius: var(--r-s); padding: 5px 8px; color: var(--quiet); }
+.icon-btn:hover { background: var(--rule-soft); color: var(--ink); }
+.task-line { min-width: 0; }
+.task-title { font: 500 17px/1.3 var(--serif); margin: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.task-sub { color: var(--quiet); font-size: 12.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+header > .rail { grid-column: 1 / -1; grid-row: 2; justify-content: center; flex-wrap: wrap; }
+header > .hbtns { grid-column: 3; grid-row: 1; }
+.rail { display: flex; align-items: center; gap: 2px; }
+.rail span { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--faint); padding: 4px 8px; border-radius: 99px; }
+.rail span b { display: inline-grid; place-items: center; width: 18px; height: 18px; border-radius: 50%;
+  border: 1.5px solid currentColor; font-size: 10.5px; font-weight: 600; }
+.rail span.done { color: var(--quiet); }
+.rail span.done b { background: var(--quiet); border-color: var(--quiet); color: var(--panel); }
+.rail span.now { color: var(--ink); background: var(--rule-soft); font-weight: 600; }
+.rail span.now b { border-color: var(--ink); }
+.rail em { font-style: normal; }
+.rail i { width: 10px; height: 1.5px; background: var(--rule); }
+
+/* ---------- layout ---------- */
+.app { display: grid; grid-template-columns: 232px minmax(0, 1fr) 420px; min-height: 0; }
+.app.no-side { grid-template-columns: 0 minmax(0, 1fr) 420px; }
+.app.wide, .app.wide.no-side { grid-template-columns: 0 minmax(0, 1fr) 600px; }
+aside.side { border-right: 1px solid var(--rule); background: var(--panel); overflow-y: auto; padding: 14px 10px; }
+.app.no-side aside.side, .app.wide aside.side { visibility: hidden; padding: 0; border: 0; overflow: hidden; }
+.side h2 { font-size: 12.5px; font-weight: 600; color: var(--quiet); margin: 4px 8px 8px; }
+.side .new { width: 100%; text-align: left; border: 1px dashed var(--rule); background: none; border-radius: var(--r-s);
+  padding: 8px 10px; color: var(--quiet); margin-bottom: 14px; }
+.side .new:hover { border-color: var(--quiet); color: var(--ink); }
+.sess { display: block; width: 100%; text-align: left; border: 0; background: none; padding: 7px 10px; border-radius: var(--r-s); }
+.sess:hover { background: var(--rule-soft); }
+.sessrow { position: relative; }
+.sessrow .sess { padding-right: 34px; }
+.sessdel { position: absolute; right: 6px; top: 7px; border: 0; background: none; color: var(--faint); font-size: 12px; padding: 2px 4px; border-radius: 4px; opacity: 0; }
+.sessrow:hover .sessdel, .sessdel:focus, .sessdel.armed { opacity: 1; }
+.sessdel.armed { color: var(--bad); font-weight: 600; }
+.sess.on { background: var(--raised); box-shadow: inset 0 0 0 1px var(--rule); }
+.sess .t { display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 13px; }
+.sess .m { display: block; color: var(--faint); font-size: 11.5px; }
+
+main { display: grid; grid-template-rows: auto auto auto auto minmax(0, 1fr) auto; min-height: 0; min-width: 0; }
+#statusbar { grid-row: 1; }
+#progress { grid-row: 2; }
+#progressLabel { grid-row: 3; }
+#runPanes { grid-row: 4; display:flex; flex-wrap:wrap; gap:8px; padding:10px 22px; border-bottom:1px solid var(--rule); }
+#runPanes [aria-selected="true"] { background:var(--ink); color:var(--panel); }
+#timeline, #taskmap-pane, #summary-pane { grid-row: 5; min-height: 0; min-width:0; }
+#taskmap-pane { overflow:auto; padding:10px 0 24px; }
+#taskmap-pane[hidden], #timeline[hidden], #summary-pane[hidden] { display:none!important; }
+#summary-pane { overflow:auto; padding:20px; }
+.summary-document { max-width:960px; margin:auto; overflow-wrap:anywhere; }
+.summary-document pre, .summary-document table { display:block; max-width:100%; overflow:auto; }
+.question-card { margin:16px 22px; padding:18px; border:1px solid var(--rule); border-radius:10px; background:var(--raised); overflow-wrap:anywhere; }
+.question-card h3 { margin-top:0; }
+.question-options { display:flex; flex-wrap:wrap; gap:10px; margin:12px 0; }
+.question-options button { white-space:normal; text-align:left; max-width:100%; }
+.question-card textarea { width:100%; min-height:76px; box-sizing:border-box; resize:vertical; padding:10px; }
+.question-answer { white-space:pre-wrap; }
+#composer { grid-row: 6; }
+main > .start, main > .home { grid-row: 1 / -1; min-height: 0; }
+.statusbar { display: flex; align-items: center; gap: 10px; padding: 9px 22px; border-bottom: 1px solid var(--rule-soft); min-height: 44px; }
+.dot { width: 8px; height: 8px; border-radius: 50%; background: var(--faint); flex: none; }
+.dot.running { background: var(--codex); box-shadow: 0 0 0 4px color-mix(in srgb, var(--codex) 18%, transparent); }
+.dot.waiting { background: var(--signal); }
+.dot.done { background: var(--good); } .dot.error { background: var(--bad); }
+.statustext { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.statustext b { font-weight: 600; }
+.ctl { display: flex; gap: 6px; }
+.btn { border: 1px solid var(--rule); background: var(--raised); border-radius: var(--r-s); padding: 5px 11px; font-size: 13px; }
+.btn:hover { border-color: var(--quiet); }
+.btn.primary { background: var(--ink); color: var(--panel); border-color: var(--ink); font-weight: 600; }
+.btn.danger { color: var(--bad); }
+.btn:disabled { opacity: .45; cursor: default; }
+
+/* ---------- timeline ---------- */
+.timeline { overflow-y: auto; padding: 6px 0 24px; }
+.divider { display: flex; align-items: center; gap: 10px; margin: 18px 22px 6px; color: var(--quiet); font-size: 12px; font-weight: 600; }
+.divider::after { content: ""; flex: 1; height: 1px; background: var(--rule); }
+.row { display: grid; grid-template-columns: 58px 104px minmax(0, 1fr) auto; gap: 12px; align-items: baseline;
+  padding: 7px 22px; border: 0; background: none; width: 100%; text-align: left; border-left: 3px solid transparent; }
+.row { content-visibility: auto; contain-intrinsic-size: auto 36px; }
+.row:hover { background: var(--rule-soft); }
+.row.sel { background: var(--raised); border-left-color: var(--ink); }
+.row .time { color: var(--faint); font-size: 12px; }
+.who { display: flex; align-items: center; gap: 7px; font-weight: 600; font-size: 13px; white-space: nowrap; }
+.who::before { content: ""; width: 9px; height: 9px; border-radius: 2px; background: var(--c, var(--quiet)); flex: none; }
+.row .sum { min-width: 0; }
+.row .kind { color: var(--quiet); font-size: 12px; margin-right: 6px; }
+.tags { display: flex; gap: 5px; }
+.tag { font-size: 11.5px; padding: 1px 7px; border-radius: 99px; background: var(--rule-soft); color: var(--quiet); white-space: nowrap; }
+.tag.warn { background: color-mix(in srgb, var(--bad) 13%, transparent); color: var(--bad); }
+.tag.ok { background: color-mix(in srgb, var(--good) 14%, transparent); color: var(--good); }
+.tag.need { background: var(--signal); color: var(--signal-ink); font-weight: 600; }
+.row.decision { padding-top: 11px; padding-bottom: 11px; }
+.row.decision .sum { font: 500 15px/1.35 var(--serif); }
+.diamond { width: 11px; height: 11px; transform: rotate(45deg); background: var(--ink); flex: none; border-radius: 2px; }
+.row.decision .who::before { display: none; }
+.row.need { background: color-mix(in srgb, var(--signal) 16%, transparent); border-left-color: var(--signal); }
+.row.need .diamond { background: var(--signal); box-shadow: 0 0 0 2px var(--ink); }
+@media (prefers-reduced-motion: no-preference) {
+  .row.need.fresh { animation: callout 1.6s ease-out 1; }
+  @keyframes callout { 0% { box-shadow: inset 0 0 0 999px color-mix(in srgb, var(--signal) 55%, transparent); } 100% { box-shadow: none; } }
+}
+.working { display: grid; grid-template-columns: 58px 104px 1fr auto; gap: 12px; align-items: center; padding: 8px 22px; color: var(--quiet); }
+.pulse { display: inline-flex; gap: 3px; }
+.pulse i { width: 5px; height: 5px; border-radius: 50%; background: var(--c, var(--quiet)); opacity: .35; }
+@media (prefers-reduced-motion: no-preference) {
+  .pulse i { animation: blink 1.2s infinite; } .pulse i:nth-child(2) { animation-delay: .2s; } .pulse i:nth-child(3) { animation-delay: .4s; }
+  @keyframes blink { 40% { opacity: 1; } }
+}
+.empty { max-width: 520px; margin: 14vh auto 0; text-align: center; color: var(--quiet); }
+
+.composer { display: flex; gap: 8px; padding: 12px 22px 14px; border-top: 1px solid var(--rule); background: var(--panel); }
+.composer textarea { flex: 1; resize: none; height: 40px; border: 1px solid var(--rule); background: var(--raised);
+  border-radius: var(--r-s); padding: 9px 11px; line-height: 1.35; }
+
+/* ---------- inspector ---------- */
+.inspector { border-left: 1px solid var(--rule); background: var(--panel); overflow-y: auto; min-width: 0; }
+.ins-head { position: sticky; top: 0; z-index: 2; background: var(--panel); display: flex; align-items: center; gap: 8px;
+  padding: 12px 18px; border-bottom: 1px solid var(--rule-soft); }
+.ins-head h3 { margin: 0; font-size: 13.5px; flex: 1; }
+.ins-body { padding: 16px 18px 28px; }
+.section { margin-bottom: 22px; }
+.section > h4 { margin: 0 0 8px; font-size: 12.5px; color: var(--quiet); font-weight: 600; }
+.metrics { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; }
+.metric { background: var(--raised); border: 1px solid var(--rule-soft); border-radius: var(--r-s); padding: 9px 10px; }
+.metric b { display: block; font-size: 19px; font-weight: 600; letter-spacing: -.01em; }
+.metric span { color: var(--quiet); font-size: 12px; }
+.budget { display: grid; grid-template-columns: 62px 1fr 64px; gap: 8px; align-items: center; font-size: 12.5px; margin: 5px 0; }
+.bar { height: 6px; background: var(--rule-soft); border-radius: 3px; overflow: hidden; }
+.bar i { display: block; height: 100%; background: var(--quiet); border-radius: 3px; }
+.bar i.over { background: var(--bad); }
+.flag { display: flex; gap: 8px; align-items: baseline; padding: 7px 0; border-bottom: 1px solid var(--rule-soft); font-size: 13px; }
+.linkish { border: 0; background: none; color: var(--quiet); font-size: 12px; text-decoration: underline; padding: 0 4px; }
+.flag button { margin-left: auto; white-space: nowrap; border: 0; background: none; color: var(--quiet); font-size: 12px; text-decoration: underline; }
+.wins { display: grid; grid-template-columns: 104px 1fr 44px; gap: 8px; align-items: center; font-size: 12.5px; margin: 5px 0; }
+.agent-row { display: grid; grid-template-columns: 104px 1fr auto; gap: 8px; align-items: center; padding: 5px 0; font-size: 13px; }
+.agent-acts { display: flex; gap: 5px; } .agent-acts .btn { padding: 3px 9px; font-size: 12px; }
+.roles { display: grid; grid-template-columns: 74px 1fr; gap: 3px 10px; font-size: 13px; }
+.roles dt { color: var(--quiet); }
+.roles dd { margin: 0; }
+.roles dd { min-width: 0; overflow-wrap: anywhere; line-height: 1.5; }
+.roles .model-name { display: block; font-size: 12px; }
+
+/* ---------- decision card ---------- */
+.dec-title { font: 500 19px/1.3 var(--serif); margin: 0 0 4px; }
+.dec-meta { color: var(--quiet); font-size: 12.5px; margin-bottom: 14px; }
+.reasons.past { background: var(--rule-soft); color: var(--quiet); }
+.reasons { margin: 0 0 14px; padding: 10px 12px; border-radius: var(--r-s); background: color-mix(in srgb, var(--signal) 22%, transparent); font-size: 13px; }
+.reasons ul { margin: 4px 0 0; padding-left: 18px; }
+.legend { display: flex; flex-wrap: wrap; gap: 12px; color: var(--quiet); font-size: 12px; margin: 0 0 10px; }
+.legend span { display: inline-flex; align-items: center; gap: 5px; }
+.matrix { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+.matrix th { font-weight: 500; color: var(--quiet); text-align: center; padding: 4px 2px; vertical-align: bottom; }
+.matrix th.opt { text-align: left; }
+.matrix td { padding: 6px 2px; border-top: 1px solid var(--rule-soft); text-align: center; vertical-align: middle; }
+.matrix td.opt { text-align: left; padding-right: 8px; max-width: 190px; }
+.matrix td.opt b { display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.matrix tr.win td { background: color-mix(in srgb, var(--good) 8%, transparent); }
+.matrix tr.pick { cursor: pointer; }
+.matrix tr.pick:hover td { background: var(--rule-soft); }
+.matrix tr.chosen td.opt b::after { content: " chosen"; color: var(--good); font-weight: 600; font-size: 11.5px; }
+.opt-id { color: var(--quiet); margin-right: 5px; }
+.cell { display: inline-flex; gap: 2px; align-items: center; justify-content: center; min-height: 18px; }
+.cell.dis { outline: 1.5px dashed var(--bad); outline-offset: 2px; border-radius: 4px; }
+.pip { border-radius: 50%; background: var(--c); flex: none; }
+.pip.self { background: transparent; box-shadow: inset 0 0 0 1.5px var(--c); }
+.total { font-weight: 600; }
+.gate-fail { color: var(--bad); font-weight: 600; }
+.expl { margin-top: 14px; }
+.expl details { border-top: 1px solid var(--rule-soft); padding: 8px 0; }
+.expl summary { cursor: pointer; font-size: 13px; }
+.expl table { width: 100%; font-size: 12.5px; border-collapse: collapse; margin-top: 6px; }
+.expl td { padding: 4px 4px; vertical-align: top; border-top: 1px solid var(--rule-soft); }
+.expl td:first-child { color: var(--quiet); white-space: nowrap; width: 84px; }
+.answer { margin-top: 16px; padding: 14px; border: 1.5px solid var(--signal); border-radius: var(--r-m); background: var(--raised); }
+.answer h4 { margin: 0 0 8px; font-size: 13.5px; }
+.answer textarea { width: 100%; height: 60px; resize: vertical; border: 1px solid var(--rule); border-radius: var(--r-s); padding: 8px; background: var(--panel); margin: 8px 0; }
+
+/* ---------- turn view ---------- */
+.tabs { display: flex; gap: 2px; }
+.tabs button { border: 0; background: none; padding: 4px 9px; border-radius: var(--r-s); color: var(--quiet); font-size: 12.5px; }
+.tabs button.on { background: var(--raised); color: var(--ink); box-shadow: inset 0 0 0 1px var(--rule); }
+.prose { font-size: 13.5px; line-height: 1.6; overflow-wrap: anywhere; }
+.prose pre { background: var(--raised); border: 1px solid var(--rule-soft); border-radius: var(--r-s); padding: 10px; overflow-x: auto; font: 12px/1.5 var(--code); }
+.prose code { font: 12px var(--code); background: var(--rule-soft); padding: 1px 4px; border-radius: 3px; }
+.prose pre code { background: none; padding: 0; }
+.prose table { border-collapse: collapse; font-size: 12.5px; }
+.prose td, .prose th { border: 1px solid var(--rule); padding: 3px 7px; }
+.prose blockquote { margin: 0; padding-left: 10px; border-left: 3px solid var(--rule); color: var(--quiet); }
+.prose h1, .prose h2, .prose h3 { font-size: 14px; margin: 14px 0 4px; }
+.issues { font-size: 12.5px; margin: 0 0 12px; padding: 0; list-style: none; }
+.issues li { padding: 5px 8px; border-left: 2px solid var(--bad); margin-bottom: 4px; background: color-mix(in srgb, var(--bad) 7%, transparent); }
+.paneview { font: 10.5px/1.35 var(--code); background: #0F1218; color: #D3D8E0; border-radius: var(--r-s); padding: 10px;
+  height: 52vh; overflow: auto; white-space: pre; margin: 0 0 10px; }
+.keys { display: flex; flex-wrap: wrap; gap: 5px; }
+.keys button { border: 1px solid var(--rule); background: var(--raised); border-radius: 5px; padding: 3px 9px; font-size: 12px; }
+.inline { display: flex; gap: 6px; margin-bottom: 8px; }
+.inline input { flex: 1; border: 1px solid var(--rule); border-radius: var(--r-s); padding: 6px 9px; background: var(--raised); }
+
+/* ---------- start screen ---------- */
+.start { overflow-y: auto; padding: 7vh 28px 40px; }
+.start-inner { max-width: 680px; margin: 0 auto; }
+.start label.big { display: block; font: 500 22px/1.3 var(--serif); margin-bottom: 10px; }
+.start textarea.task { width: 100%; min-height: 128px; resize: vertical; border: 1px solid var(--rule); border-radius: var(--r-m);
+  background: var(--raised); padding: 14px 16px; font: 16px/1.5 var(--serif); }
+.field { margin-top: 20px; }
+.field > span { display: block; font-size: 13px; font-weight: 600; margin-bottom: 7px; }
+.field > small { display: block; color: var(--quiet); font-size: 12.5px; margin-top: 6px; }
+.seg { display: inline-flex; border: 1px solid var(--rule); border-radius: var(--r-s); background: var(--raised); padding: 2px; }
+.seg button { border: 0; background: none; padding: 5px 12px; border-radius: 4px; font-size: 13px; color: var(--quiet); }
+.seg button.on { background: var(--ink); color: var(--panel); }
+.agents { display: flex; flex-wrap: wrap; gap: 8px; }
+.chip { display: flex; align-items: center; gap: 8px; border: 1px solid var(--rule); background: var(--raised); border-radius: 99px; padding: 5px 12px 5px 10px; font-size: 13px; }
+.chip input { accent-color: var(--c); }
+.chip small { color: var(--faint); }
+.chip.missing { color: var(--faint); border-style: dashed; }
+.row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.start select, .start input[type=text], .start input[type=number] { width: 100%; border: 1px solid var(--rule); border-radius: var(--r-s);
+  background: var(--raised); padding: 7px 9px; }
+.start .go { margin-top: 26px; display: flex; align-items: center; gap: 14px; }
+.start .go .btn { padding: 9px 18px; font-size: 14px; }
+.hint { color: var(--quiet); font-size: 12.5px; }
+.recap { margin: 14px 22px 4px; border: 1px solid var(--rule); border-radius: var(--r-m); background: var(--raised); }
+.recap summary { cursor: pointer; padding: 10px 14px; font: 500 15px/1.35 var(--serif); }
+.recap .body { padding: 0 14px 12px; font-size: 13px; display: grid; grid-template-columns: 92px 1fr; gap: 4px 12px; }
+.recap .body dt { color: var(--quiet); } .recap .body dd { margin: 0; }
+.divider.cycle { color: var(--ink); font: 500 14px/1.3 var(--serif); margin-top: 26px; }
+.divider.cycle::after { background: var(--ink); opacity: .35; }
+.cyc { font-size: 12px; font-weight: 600; padding: 3px 9px; border-radius: 99px; background: var(--ink); color: var(--panel); margin-right: 6px; }
+.group { margin: 0 0 12px; } .group > h3 { font-size: 12px; font-weight: 600; color: var(--quiet); margin: 0 8px 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.side .filter { width: 100%; border: 1px solid var(--rule); border-radius: var(--r-s); background: var(--raised); padding: 6px 9px; margin-bottom: 10px; font-size: 13px; }
+.sess .m b { font-weight: 600; color: var(--signal-ink); background: color-mix(in srgb, var(--signal) 55%, transparent); padding: 0 5px; border-radius: 4px; }
+.resume-card { display: flex; align-items: center; gap: 14px; padding: 14px 16px; border: 1.5px solid var(--ink); border-radius: var(--r-m); background: var(--raised); margin-bottom: 26px; }
+.resume-card div { flex: 1; min-width: 0; } .resume-card b { display: block; font: 500 16px/1.3 var(--serif); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.readonly { padding: 7px 22px; background: color-mix(in srgb, var(--agy) 12%, transparent); font-size: 12.5px; }
+.readonly button { border: 0; background: none; text-decoration: underline; color: inherit; }
+
+@media (prefers-reduced-motion: no-preference) {
+  ::view-transition-old(inspector), ::view-transition-new(inspector) { animation-duration: .16s; }
+}
+.inspector { view-transition-name: inspector; }
+@media (max-width: 1100px) { .app { grid-template-columns: 0 minmax(0, 1fr) 360px; } aside.side { visibility: hidden; padding: 0; border: 0; overflow: hidden; } .rail span em { display: none; } }
+@media (max-width: 760px) {
+  body { overflow: auto; } header { grid-template-columns: minmax(0, 1fr); } header > .hbtns { grid-column: 1; grid-row: auto; flex-wrap: wrap; } header > .rail { grid-row: auto; } .app { display: block; }
+  .inspector { border-left: 0; border-top: 1px solid var(--rule); } .row { grid-template-columns: 46px 84px 1fr; } .row .tags { grid-column: 3; }
+}
+
+/* ---------- alerts, sheets, personalization ---------- */
+.hbtns { display: flex; gap: 6px; align-items: center; }
+.hbtn { position: relative; border: 1px solid var(--rule); background: var(--raised); border-radius: var(--r-s); padding: 5px 10px; font-size: 13px; color: var(--ink); }
+.hbtn:hover { border-color: var(--quiet); }
+.hbtn .n { margin-left: 6px; background: var(--signal); color: var(--signal-ink); border-radius: 9px; padding: 0 6px; font-size: 11px; font-weight: 600; }
+.hbtn .n.red { background: var(--bad); color: #fff; }
+dialog.sheet { border: 1px solid var(--rule); border-radius: 14px; background: var(--raised); color: var(--ink); padding: 0; width: min(640px, 94vw); max-height: 86vh; box-shadow: 0 20px 60px rgba(0,0,0,.35); }
+dialog.sheet::backdrop { background: rgba(10,14,20,.45); }
+.sheet .sh-head { display: flex; justify-content: space-between; align-items: center; padding: 14px 18px; border-bottom: 1px solid var(--rule); position: sticky; top: 0; background: var(--raised); }
+.sheet .sh-head h3 { margin: 0; font: 500 17px var(--serif); }
+.sheet .sh-body { padding: 14px 18px 18px; overflow: auto; max-height: calc(86vh - 60px); display: grid; gap: 12px; }
+.sheet textarea { width: 100%; min-height: 84px; padding: 8px 10px; border: 1px solid var(--rule); border-radius: var(--r-s); background: var(--panel); }
+.sheet .chip { display: inline-flex; gap: 6px; align-items: center; background: var(--panel); border: 1px solid var(--rule); border-radius: 12px; padding: 2px 4px 2px 10px; font-size: 12px; color: var(--quiet); }
+.sheet .chip button { border: 0; background: none; color: var(--quiet); padding: 0 6px; }
+.sheet .item { border: 1px solid var(--rule-soft); border-radius: var(--r-s); padding: 8px 10px; display: grid; gap: 4px; }
+.sheet .item .top { display: flex; justify-content: space-between; gap: 10px; }
+.sheet .st { font-size: 12px; border-radius: 10px; padding: 0 8px; background: var(--rule-soft); }
+.sheet .st.applied, .sheet .st.proposed { background: color-mix(in srgb, var(--good) 20%, transparent); }
+.sheet .st.declined, .sheet .st.denied, .sheet .st.blocked { background: color-mix(in srgb, var(--bad) 20%, transparent); }
+.react { display: flex; gap: 8px; align-items: center; margin: 4px 0 10px; font-size: 13px; color: var(--quiet); }
+html[data-density=compact] body { font-size: 13px; line-height: 1.4; }
+html[data-density=compact] .timeline { gap: 2px; }
+html[data-theme=dark] { color-scheme: dark; --bg: #14181F; --panel: #1A1F27; --raised: #212733; --ink: #E7EAF0; --quiet: #9AA4B4; --faint: #6B7586;
+  --rule: #2D3440; --rule-soft: #252B36; --claude: #E0A040; --codex: #3CC2AE; --agy: #9B8CFF; --human: #C9CFDA; --signal-ink: #1B1500; --good: #4CC487; --bad: #F07468; }
+html[data-theme=light] { color-scheme: light; --bg: #EDF0F3; --panel: #F8F9FB; --raised: #FFFFFF; --ink: #1B2230; --quiet: #687385; --faint: #9AA3B0;
+  --rule: #D6DBE2; --rule-soft: #E4E8ED; --claude: #A86A12; --codex: #0E7468; --agy: #5B45E0; --human: #3A4352; --signal-ink: #5A4500; --good: #1F7A4A; --bad: #B4322A; }
+.refgrid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+.refgrid img { width: 100%; aspect-ratio: 16/10; object-fit: cover; border-radius: var(--r-s); border: 1px solid var(--rule); display: block; }
+
+.brief { border: 1px solid var(--rule); border-radius: var(--r-m); padding: 10px 12px; margin: 10px 0; background: var(--raised); }
+.brief p { margin: 0 0 8px; }
+.pc { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 14px; margin-top: 6px; }
+.pc ul { margin: 2px 0 0; padding-left: 16px; } .pc li { margin: 2px 0; }
+.pc h5 { margin: 0; font-size: 12px; color: var(--quiet); font-weight: 600; }
+.optcard { border-top: 1px solid var(--rule-soft); padding: 8px 0; }
+.optcard.pick { cursor: pointer; } .optcard.pick:hover { background: var(--raised); }
+.askbox textarea { width: 100%; min-height: 54px; resize: vertical; }
+.qa { margin: 8px 0; } .qa .q { font-weight: 600; } .qa .a { white-space: pre-wrap; margin-top: 2px; }
+
+.progress { height: 3px; background: var(--rule-soft); position: relative; }
+.progress i { display: block; height: 100%; background: var(--signal); transition: width .6s ease; }
+@media (prefers-reduced-motion: reduce) { .progress i { transition: none; } }
+.progress-label { font-size: 12px; color: var(--quiet); padding: 4px 22px 0; }
+.working .now { display: block; color: var(--quiet); font-size: 12px; margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 70ch; }
+.gear { margin-left: 4px; }
+.aprv { color: var(--quiet); font-size: 12px; cursor: pointer; border: 0; background: none; }
+.chat { display: grid; gap: 10px; } .chat .you, .chat .ans, .chat .hq, .chat .ha { padding: 8px 10px; border-radius: var(--r-m); }
+.chat .you { background: var(--raised); border: 1px solid var(--rule); } .chat .ans { margin-left: 18px; border-left: 3px solid var(--signal); }
+.chat .hq { background: var(--raised); border: 1px dashed var(--rule); } .chat .ha { margin-left: 18px; border-left: 3px solid var(--quiet); white-space: pre-wrap; }
+.chat .hint { display: block; margin-top: 2px; }
+.ctoggle { display: flex; flex-direction: column; gap: 4px; flex-shrink: 0; }
+.ctoggle button { font-size: 12px; padding: 4px 8px; color: var(--ink); background: var(--raised);
+  border: 1px solid var(--rule); border-radius: var(--r-s); }
+.ctoggle button:hover { border-color: var(--quiet); }
+.ctoggle button.on { background: var(--ink); color: var(--panel); }
+.sheet .field { display: grid; gap: 4px; } .sheet .field > span { font-weight: 600; font-size: 13px; }
+.sheet select, .sheet input[type=number] { border: 1px solid var(--rule); border-radius: var(--r-s); padding: 6px 8px; background: var(--raised); color: var(--ink); }
+.readiness { display: grid; gap: 4px; margin-bottom: 14px; font-size: 13px; }
+.ready-row { display: flex; gap: 8px; align-items: baseline; flex-wrap: wrap; }
+.ready-row.bad { color: var(--quiet); }
+.stopwhy { display: block; margin-top: 6px; padding: 8px 10px; border-left: 3px solid var(--warn, #c77700); }
+.steer { display: grid; gap: 10px; margin-top: 14px; }
+.steer .drops { display: flex; gap: 6px; flex-wrap: wrap; }
+.confirm .sh-body { padding: 18px; display: grid; gap: 14px; min-width: 280px; }
+.confirm-btns { display: flex; gap: 8px; justify-content: flex-end; }
+.ext-center { max-width: 1000px; display: grid; gap: 20px; padding-bottom: 40px; }
+.ext-head, .ext-top { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+.ext-head h2 { font-size: 28px; letter-spacing: -.6px; margin: 2px 0 6px; }
+.ext-head p, .ext-card p { margin: 6px 0 12px; }
+.ext-kicker { color: var(--quiet); font-size: 10px; letter-spacing: 1.5px; font-weight: 700; }
+.ext-summary { display: flex; gap: 24px; flex-wrap: wrap; color: var(--quiet); font-size: 12px; padding-bottom: 14px; border-bottom: 1px solid var(--rule); }
+.ext-summary b { color: var(--ink); }
+.ext-card { border: 1px solid var(--rule); border-radius: var(--r-m); padding: 20px; background: var(--panel); }
+.ext-card h3, .ext-card h4 { margin: 0 0 8px; }
+.ext-card h4 { margin-top: 18px; font-size: 13px; }
+.ext-card summary { cursor: pointer; font-weight: 600; }
+.ext-top > div:first-child { margin-right: auto; }
+.ext-state { padding: 3px 9px; border-radius: 20px; background: var(--raised); font-size: 12px; }
+.ext-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 240px), 1fr)); gap: 20px 22px; margin: 16px 0; }
+.ext-grid .field { display: grid; align-content: start; gap: 7px; font-size: 12px; }
+.ext-grid .field > span { min-height: 2.9em; line-height: 1.45; overflow-wrap: anywhere; }
+.ext-center input:not([type=checkbox]), .ext-center select { width: 100%; background: var(--raised); color: var(--ink); border: 1px solid var(--rule); border-radius: var(--r-s); padding: 8px; min-width: 0; }
+.ext-center input[type=checkbox] { accent-color: var(--signal); justify-self: start; }
+.ext-features { display: grid; gap: 14px; }
+.ext-placement { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; padding: 12px 0; border-top: 1px solid var(--rule); }
+.ext-placement label { display: flex; align-items: center; gap: 8px; font-size: 12px; }
+.ext-placement label:first-child { margin-right: auto; }
+.ext-placement input[type=number] { width: 76px; }
+.ext-error { color: var(--bad); }
+.app.page-view { grid-template-columns: 232px minmax(0, 1fr) 0; }
+.app.page-view.no-side { grid-template-columns: 0 minmax(0, 1fr) 0; }
+.app.page-view #inspector { display: none; }
+.app.page-view #main { display: block; overflow: hidden; }
+#notificationBar { min-width: 0; border-bottom: 1px solid var(--rule); background: var(--panel); padding: 7px 16px; }
+.notice-toolbar { display: flex; align-items: center; gap: 12px; min-width: 0; }
+.notice-toolbar > .btn { flex: 0 0 auto; }
+.notice-latest { min-width: 0; flex: 1; border: 0; background: none; padding: 4px 0; text-align: left;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 12px; color: var(--quiet); }
+.notice-latest:hover { color: var(--ink); }
+#noticeEmpty { color: var(--quiet); font-size: 12px; }
+#noticeList { max-height: min(30vh, 240px); overflow-y: auto; margin-top: 7px; }
+#noticeList[hidden], .notice-toolbar [hidden] { display: none; }
+.notice-row { display: flex; align-items: flex-start; gap: 10px; padding: 10px 0; border-top: 1px solid var(--rule); }
+.notice-row > .btn, .notice-row > .icon-btn { flex: 0 0 auto; }
+.notice-message { flex: 1; min-width: 0; border: 0; background: none; text-align: left; padding: 5px 0;
+  overflow-wrap: anywhere; white-space: pre-wrap; line-height: 1.5; }
+.notice-message:hover { color: var(--quiet); }
+.ext-card, .ext-top > div, .field, .item .top > span { min-width: 0; }
+.ext-card p, .hint, .item, .stopwhy { overflow-wrap: anywhere; }
+.ext-placement { align-items: flex-start; }
+.ext-placement label { flex-wrap: wrap; }
+.row > *, .statusbar > * { min-width: 0; }
+.row { overflow-wrap: anywhere; }
+.statusbar, .ctl { flex-wrap: wrap; }
+.statustext { flex: 1 1 220px; white-space: normal; overflow-wrap: anywhere; line-height: 1.5; }
+.row .who { white-space: normal; overflow-wrap: anywhere; }
+@media (min-width: 761px) and (max-width: 1120px) {
+  header { gap: 10px; grid-template-columns: auto minmax(0, 1fr) auto; }
+  header > .rail { display: none; }
+  .hbtns { display: flex; flex-wrap: wrap; gap: 4px; }
+  .app:not(.page-view) { grid-template-columns: 200px minmax(0, 1fr) 320px; }
+  .app.page-view { grid-template-columns: 200px minmax(0, 1fr) 0; }
+  .app.no-side:not(.page-view) { grid-template-columns: 0 minmax(0, 1fr) 320px; }
+  .app.no-side.page-view { grid-template-columns: 0 minmax(0, 1fr) 0; }
+  .app:not(.no-side):not(.wide) aside.side { visibility: visible; padding: 14px 10px; border-right: 1px solid var(--rule); }
+  .row { grid-template-columns: 44px 80px minmax(0, 1fr) auto; gap: 8px; padding: 8px 12px; }
+}
+
+/* Task inspection stays in document flow and can be collapsed. */
+body { grid-template-columns:minmax(0,1fr); }
+main { grid-template-columns:minmax(0,1fr); }
+.composer { min-width:0; flex-wrap:wrap; }
+.composer textarea { min-width:0; flex:1 1 160px; }
+@media (max-width:760px) { .composer .ctoggle { flex-direction:row; flex-wrap:wrap; width:100%; min-width:0; } }
+
+.app.hide-details { grid-template-columns:232px minmax(0,1fr) 0; }
+.app.hide-details.no-side, .app.hide-details.wide { grid-template-columns:0 minmax(0,1fr) 0; }
+.app.hide-details #inspector { display:none; }
+.task-sub, .statustext { white-space:normal; overflow-wrap:anywhere; text-overflow:clip; }
+.statusbar, .ctl, .notice-toolbar, .notice-row { flex-wrap:wrap; }
+.notice-toolbar #noticeLatest, .notice-toolbar #noticeEmpty { display:none; }
+.notice-row .notice-message { flex:1 1 220px; }
+.hbtns { flex-wrap:wrap; min-width:0; }
+@media (max-width:1200px) { header > .hbtns { grid-column:1 / -1; grid-row:2; } header > .rail { grid-row:3; } }
+@media (max-width:760px) { .app.hide-details { display:block; } .statusbar { align-items:flex-start; } .statustext { flex:1 1 180px; } }
+
+</style>
+</head>
+<body>
+<header>
+  <div class="brand">
+    <button class="icon-btn" id="toggleSide" title="Show or hide sessions" aria-label="Show or hide sessions">
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="1.5" y="2.5" width="13" height="11" rx="2"/><path d="M6 2.5v11"/></svg>
+    </button>
+    <svg width="26" height="20" viewBox="0 0 26 20" aria-label="Duo"><circle cx="9" cy="10" r="7" fill="var(--claude)" opacity=".9"/><circle cx="17" cy="10" r="7" fill="var(--codex)" opacity=".85"/></svg>
+    <span class="duo-ver" id="duoVer" title="The Duo version you are running">Duo</span>
+  </div>
+  <div class="task-line"><p class="task-title" id="title">Duo</p><div class="task-sub" id="subtitle">Agents explore every option, score them, and you decide what matters.</div></div>
+  <nav class="rail" id="rail" aria-label="Phases"></nav>
+  <div class="hbtns">
+    <span class="slot-header" id="slotHeader"></span>
+    <button class="hbtn" id="toggleSessions" type="button" aria-expanded="true">Sessions</button>
+    <button class="hbtn" id="toggleInspector" type="button" aria-expanded="true">Details</button>
+    <button class="hbtn" id="btnFeedback" title="Tell Duo what to change (f)">Feedback</button>
+    <button class="hbtn" id="btnDefaults" title="Defaults for new runs">Defaults</button>
+    <button class="hbtn" id="btnChanges" title="What Duo changed for you" hidden>Changes<span class="n" id="nChanges"></span></button>
+    <button class="hbtn" id="btnSecurity" title="Everything Security denied or flagged">Security<span class="n red" id="nSecurity" hidden></span></button>
+  </div>
+</header>
+<dialog class="sheet" id="sheet"></dialog>
+<dialog class="sheet confirm" id="askDlg"></dialog>
+<section id="notificationBar" aria-label="Notifications"></section>
+
+<div class="app" id="app">
+  <aside class="side" aria-label="Sessions">
+    <button class="new" id="homeBtn">Home</button>
+    <button class="new" id="newBtn">New task</button>
+    <button class="new" id="featuresBtn" type="button">Features</button>
+    <div id="featureNav" aria-label="Pages from your features"></div>
+    <h2>Recent</h2>
+    <div id="sessions"></div>
+  </aside>
+
+  <main id="main">
+    <div class="statusbar" id="statusbar">
+      <span class="dot" id="sdot"></span>
+      <span class="statustext" id="stext">No session yet</span>
+      <span class="ctl" id="ctl"></span>
+    </div>
+    <div class="progress" id="progress" hidden><i id="progressFill"></i></div><div class="progress-label" id="progressLabel" hidden></div>
+    <div id="runPanes" role="tablist" aria-label="Run views">
+      <button class="btn" id="taskmap-tab" role="tab" aria-controls="taskmap-pane" aria-selected="true" data-run-pane="map">Task map</button>
+      <button class="btn" id="chat-tab" role="tab" aria-controls="timeline" aria-selected="false" data-run-pane="chat" tabindex="-1">Chat</button>
+      <button class="btn" id="summary-tab" role="tab" aria-controls="summary-pane" aria-selected="false" data-run-pane="summary" tabindex="-1">Summary</button>
+    </div>
+    <section id="taskmap-pane" role="tabpanel" aria-labelledby="taskmap-tab" tabindex="0"><section id="taskmap-root" aria-label="Task map"></section></section>
+    <div class="timeline" id="timeline" role="tabpanel" aria-labelledby="chat-tab" tabindex="0" hidden></div>
+    <section id="summary-pane" role="tabpanel" aria-labelledby="summary-tab" tabindex="0" hidden></section>
+    <form class="composer" id="composer">
+      <label class="sr" for="msg">Message the agents</label>
+      <div class="ctoggle" role="radiogroup" aria-label="Who to talk to"><button type="button" class="on" data-ct="agents">Tell the agents</button><button type="button" data-ct="helper">Ask the helper</button><button type="button" data-ct="work" hidden>Add work</button></div>
+      <textarea id="msg" placeholder="Message the agents. They answer you first, before they carry on."></textarea>
+      <button class="btn primary" type="submit">Send</button>
+    </form>
+  </main>
+
+  <section class="inspector" id="inspector" aria-label="Details"></section>
+</div>
+
+<script>
+const recordUIError=error=>fetch('/api/ui-diagnostic',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({message:String(error?.message || error),stack:String(error?.stack || '')})}).catch(()=>{});
+window.addEventListener('error',event=>recordUIError(event.error || event.message));
+window.addEventListener('unhandledrejection',event=>recordUIError(event.reason));
+</script>
+<script type="module">
+import {createNotificationCenter} from '/notifications.js';
+import {renderTaskMap} from '/task-map.js';
+import {createEvidenceCard} from '/research-evidence.js';
+const $ = s => document.querySelector(s);
+let noticeStorage = null;
+try { noticeStorage = localStorage; } catch {}
+const notices = createNotificationCenter($('#notificationBar'), noticeStorage);
+const esc = s => String(s == null ? "" : s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const PHASES = [["frame","Plan"],["scout","Research"],["research_check","Research review"],["feasibility","Feasibility"],["deep","Build"],["verify","Verify"]];
+const COLORS = {claude: "var(--claude)", codex: "var(--codex)", agy: "var(--agy)", human: "var(--human)", system: "var(--system)"};
+const KIND_LABEL = {plan_review: "reviewed the plan", exchange: "wrote the plan", followup: "added", restart: "", scout: "researched", build: "built",
+  settings: "changed settings", setup: "planned the sandbox", setup_check: "checked the sandbox", setup_fix: "fixed the sandbox", warning: "", revise: "revised", critique: "reviewed", verify: "verified", secure: "reviewed security", message: "", task: "", decision: "", done: ""};
+const MODE_LABEL = {auto: "Auto", big: "Ask on big decisions", always: "Ask always"};
+const STATUS_WORD = {booting: "starting", waiting: "waiting for you", running: "working", paused: "paused",
+  done: "done", stopped: "unfinished", error: "unfinished"};
+const ACTIVE = ["booting", "waiting", "running", "paused"];
+function workflowPhases(s) {
+  const phases = [["frame", s?.role_plan_step === 'review' ? "Plan review" : "Planning"]];
+  if (s?.stage_requests?.research) phases.push(["scout", "Research"], ["research_check", "Research review"]);
+  if (s?.stage_requests?.feasibility) phases.push(["feasibility", "Feasibility"]);
+  phases.push(["deep", "Build and critique"]);
+  if (s?.stage_requests?.verify || s?.stage_requests?.security) phases.push(["verify", "Required checks"]);
+  if (!s || s.goal_loop_version === 2) phases.push(['cycle_summary', 'Detailed summary'], ['goal_check', 'Goal check'], ['further_work', 'Assign further work']);
+  return phases;
+}
+
+let live = null, past = null, view = "auto", sel = null, insTab = "reply";
+let runPane = ['chat','summary'].includes(sessionStorage.getItem('duo.run-pane')) ? sessionStorage.getItem('duo.run-pane') : 'map';
+function setRunPane(pane) {
+  runPane = ['chat','summary'].includes(pane) ? pane : 'map';
+  sessionStorage.setItem('duo.run-pane', runPane);
+  applyRunPane();
+  if(runPane==='summary') renderSummaryDocument(S());
+}
+function applyRunPane() {
+  if (!$('#runPanes')) return;
+  $('#taskmap-pane').hidden = runPane !== 'map';
+  $('#timeline').hidden = runPane !== 'chat';
+  $('#summary-pane').hidden = runPane !== 'summary';
+  for (const button of document.querySelectorAll('[data-run-pane]')) {
+    const selected = button.dataset.runPane === runPane;
+    button.setAttribute('aria-selected', String(selected)); button.tabIndex = selected ? 0 : -1;
+  }
+  if ($('#composer')) $('#composer').style.display = S() && runPane === 'chat' ? 'flex' : 'none';
+}
+function wireRunPanes() {
+  for (const button of document.querySelectorAll('[data-run-pane]')) {
+    button.onclick = () => setRunPane(button.dataset.runPane);
+    button.onkeydown = event => {
+      if (!['ArrowLeft','ArrowRight','Home','End'].includes(event.key)) return;
+      event.preventDefault();
+      const panes=['map','chat','summary'];
+      const pane = event.key==='Home' ? 'map' : event.key==='End' ? 'summary' : panes[(panes.indexOf(runPane)+(event.key==='ArrowLeft'?2:1))%3];
+      setRunPane(pane); document.querySelector(`[data-run-pane="${pane}"]`).focus();
+    };
+  }
+  applyRunPane();
+}
+let startForm = {task_type: "auto", mode: null, agents: null};
+
+function confirmBox(msg, yes = "Continue") {
+  const d = $("#askDlg");
+  d.innerHTML = `<div class="sh-body"><p>${esc(msg)}</p><div class="confirm-btns"><button class="btn" id="cNo">Cancel</button><button class="btn primary" id="cYes">${esc(yes)}</button></div></div>`;
+  d.showModal();
+  return new Promise(res => {
+    const done = v => { d.close(); res(v); };
+    $("#cNo").onclick = () => done(false);
+    $("#cYes").onclick = () => done(true);
+    d.addEventListener("cancel", () => done(false), {once: true});
+  });
+}
+
+function S() { return past || (live && live.session); }
+function labelOf(a) { const s = S(); return a === "human" ? "You" : a === "system" ? "Duo" : s?.human_agent_labels?.[a] || (s && s.labels && s.labels[a]) || (live && (live.agents.find(x => x.id === a) || {}).label) || a; }
+document.addEventListener("keydown", e => {
+  if (e.key !== "/" || e.defaultPrevented || e.isComposing || e.ctrlKey || e.metaKey || e.altKey || isTextEditingTarget(e.target) || isTextEditingTarget(document.activeElement) || document.querySelector("dialog[open]")) return;
+  const m = $("#msg"); if (m) { e.preventDefault(); m.focus(); }
+});
+document.addEventListener("click", e => { if (e.target.closest?.("#btnDefaults")) openSheet("defaults"); });
+function toast(t) { notices.publish('toast', {message: t, ttl: 5000}); }
+async function api(path, body) {
+  const route = path.split('?')[0];
+  const runRoutes = ['/api/control','/api/message','/api/ask','/api/rollback','/api/checklist','/api/steer','/api/answer','/api/restart','/api/decide','/api/settings','/api/keys','/api/terminal'];
+  if (body && runRoutes.includes(route)) body = {run_id:S()?.id, ...body};
+  if (!body && ['/api/chat','/api/pane'].includes(route) && S()?.id) path += (path.includes('?') ? '&' : '?') + new URLSearchParams({run_id:S().id});
+  const r = await fetch(path, body ? {method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify(body)} : {});
+  const j = await r.json().catch(() => ({}));
+  if (!r.ok) { toast(j.error || "Duo could not do that."); throw new Error(j.error); }
+  return j;
+}
+function fmtSecs(s) { s = Math.round(s || 0); return s < 60 ? s + "s" : Math.floor(s / 60) + "m " + (s % 60) + "s"; }
+
+/* ponytail: a small Markdown subset (headings, lists, code, tables, quotes, bold, links). Upgrade to a full parser if agents start using more. */
+function md(src) {
+  const blocks = []; let s = String(src || "").replace(/```(\w*)\n([\s\S]*?)```/g, (_, l, c) => { blocks.push(c); return "\u0000" + (blocks.length - 1) + "\u0000"; });
+  const inline = t => esc(t).replace(/`([^`]+)`/g, "<code>$1</code>").replace(/\*\*([^*]+)\*\*/g, "<b>$1</b>")
+    .replace(/\[([^\]]+)\]\((https?:[^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener">$1</a>');
+  const out = []; const lines = s.split("\n"); let i = 0;
+  while (i < lines.length) {
+    const l = lines[i];
+    const blk = l.match(/^\u0000(\d+)\u0000$/);
+    if (blk) { out.push("<pre><code>" + esc(blocks[+blk[1]]) + "</code></pre>"); i++; continue; }
+    if (/^#{1,4}\s/.test(l)) { out.push("<h3>" + inline(l.replace(/^#+\s/, "")) + "</h3>"); i++; continue; }
+    if (/^\|/.test(l)) { const rows = []; while (i < lines.length && /^\|/.test(lines[i])) { if (!/^\|[\s|:-]+\|$/.test(lines[i])) rows.push(lines[i]); i++; }
+      out.push("<table>" + rows.map((r, k) => "<tr>" + r.replace(/^\||\|$/g, "").split("|").map(c => (k ? "<td>" : "<th>") + inline(c.trim()) + (k ? "</td>" : "</th>")).join("") + "</tr>").join("") + "</table>"); continue; }
+    if (/^\s*([-*+]|\d+[.)])\s/.test(l)) { const ord = /^\s*\d/.test(l); const items = [];
+      while (i < lines.length && /^\s*([-*+]|\d+[.)])\s/.test(lines[i])) { items.push("<li>" + inline(lines[i].replace(/^\s*([-*+]|\d+[.)])\s/, "")) + "</li>"); i++; }
+      out.push((ord ? "<ol>" : "<ul>") + items.join("") + (ord ? "</ol>" : "</ul>")); continue; }
+    if (/^>\s?/.test(l)) { out.push("<blockquote>" + inline(l.replace(/^>\s?/, "")) + "</blockquote>"); i++; continue; }
+    if (!l.trim()) { i++; continue; }
+    const para = []; while (i < lines.length && lines[i].trim() && !/^(#|\||>|\s*([-*+]|\d+[.)])\s|\u0000)/.test(lines[i])) { para.push(lines[i]); i++; }
+    out.push("<p>" + inline(para.join(" ")) + "</p>");
+  }
+  return out.join("");
+}
+
+/* ---------------- header ---------------- */
+function shortRunTitle(s) {
+  if (!s) return 'Duo';
+  const source=String(s.short_title || s.goal_summary || s.project || s.title || s.task || 'Duo').trim().split('\n')[0];
+  const sentence=(source.match(/^.*?[.!?](?=\s|$)/u) || [source])[0];
+  const words=sentence.split(/\s+/);
+  const text=words.slice(0,8).join(' ');
+  const chars=Array.from(text);
+  return chars.slice(0,64).join('').trimEnd() + (words.length>8 || chars.length>64 ? '…' : '');
+}
+function renderHeader(s) {
+  $("#title").textContent = shortRunTitle(s);
+  $("#title").title = s ? s.task : "Duo";
+  $("#subtitle").textContent = s
+    ? [s.project, s.task_type ? s.task_type[0].toUpperCase() + s.task_type.slice(1) : "Type pending", MODE_LABEL[s.mode],
+       s.agents.map(labelOf).join(", ")].join("   /   ")
+    : "Selected CLIs run planning, coding, and independent review agents.";
+  const PH = workflowPhases(s);
+  const idx = s ? (s.status === "done" ? 99 : PH.findIndex(p => p[0] === (s.goal_loop_version === 2 && ['goal_assess','goal_assign'].includes(s.pending?.[0]?.kind) ? 'frame' : s.goal_loop_version === 2 && ['cycle_summary','goal_check'].includes(s.pending?.[0]?.kind) ? s.pending[0].kind : s.phase === "decide" && s.chosen ? "deep" : s.phase))) : -1;
+  const completed = new Set((s?.entries || []).map(row => ({assess:'frame',exchange:'frame',goal_assess:'frame',goal_assign:'frame',build:'deep',revise:'deep',critique:'deep'}[row.kind] || row.kind)));
+  if ((s?.goal?.cycles || []).some(row=>row.status==='continue')) completed.add('further_work');
+  const railHTML = (s?.goal_loop_version === 2 ? `<span class="cyc">Goal cycle ${Math.max(1,(s.goal?.cycles || []).length + (s.status==='done'?0:1))}</span>` : '') + (s?.cycle > 1 ? `<span class="cyc">Cycle ${s.cycle}</span>` : "") + PH.map((p, i) => (i ? "<i></i>" : "") +
+    `<span class="${s?.status==='done' && s.goal_loop_version===2 ? (completed.has(p[0]) ? 'done' : '') : i < idx ? "done" : i === idx ? "now" : ""}" ${i === idx ? 'aria-current="step"' : ""}><b>${i + 1}</b><em>${p[1]}</em></span>`).join("");
+  if($('#rail').dataset.markup!==railHTML){$('#rail').innerHTML=railHTML;$('#rail').dataset.markup=railHTML;}
+  if (s) {
+    const stage=$('#summaryStage') || document.createElement('button'); stage.id='summaryStage';stage.className='btn'; stage.type='button';
+    stage.textContent='Summary · '+(s.broker?.completion_summary?.status || (s.status==='done'?'ready to prepare':'after completion'));
+    stage.onclick=()=>{setRunPane('summary');renderSummaryDocument(S());}; $('#rail').append(stage);
+  }
+}
+
+function renderProgress(s) {
+  const bar = $("#progress"), lab = $("#progressLabel"); if (!bar) return;
+  const p = s && s.progress;
+  const show = p && ACTIVE.includes(s.status);
+  bar.hidden = lab.hidden = !show; if (!show) return;
+  $("#progressFill").style.width = Math.round((p.done || 0) * 100) + "%";
+  const PH = workflowPhases(s);
+  const names = PH.map(x => x[0]); const i = names.indexOf(p.phase === "decide" ? "deep" : p.phase);
+  const eta = p.eta_s ? ("about " + (p.eta_s[0] < 60 ? "under a minute" : Math.round(p.eta_s[0] / 60) + " to " + Math.max(1, Math.round(p.eta_s[1] / 60)) + " min") + " left") : "time left unknown until a few turns finish";
+  lab.textContent = `${i >= 0 ? "Phase " + (i + 1) + " of " + PH.length + ", " : ""}${Math.round((p.done || 0) * 100)}% done, ${eta}`;
+}
+
+async function renderChat(s) {
+  const ins = $("#inspector");
+  const items = await api('/api/chat?'+new URLSearchParams({run_id:s.id}));
+  if(S()?.id!==s.id || sel!=='chat') return;
+  const body = items.length ? items.map(x => x.role === "you"
+    ? `<div class="you"><b>You</b> <span class="hint">${esc(x.time_hm || "")}</span><div>${esc(x.text)}</div></div>${x.answer ? `<div class="ans"><span class="who" style="--c:${COLORS[x.answer.by]}">${esc(labelOf(x.answer.by))}</span><div>${esc(x.answer.text)}</div><button class="btn" data-sel="e:${x.answer.n}" style="margin-top:4px">Open turn</button></div>` : `<div class="ans hint">Waiting for an answer. The next agent turn answers first.</div>`}`
+    : `<div class="hq"><b>You asked the agent</b><div>${esc(x.q)}</div></div><div class="ha">${x.a == null ? (["queued","working"].includes(x.status) ? "Preparing an answer…" : "The answer did not finish. Retry it in Chat.") : esc(x.a)}</div>`).join("")
+    : '<p class="hint">Nothing yet. Use the box below to tell the agents something, or switch it to Ask the helper for a question about the run.</p>';
+  ins.innerHTML = `<div class="ins-head"><button class="icon-btn" id="closeIns" aria-label="Back to insights">✕</button><h3>Chat</h3></div><div class="ins-body chat">${body}</div>`;
+  $("#closeIns").onclick = () => select(null);
+  ins.querySelectorAll("[data-sel]").forEach(el => el.onclick = () => select(el.dataset.sel));
+}
+
+/* ---------------- status + controls ---------------- */
+function renderErrorCard(s) {
+  if (!s?.error) { notices.clear('run-error'); return; }
+  notices.publish('run-error', {message: 'Duo hit a problem: ' + s.error.message,
+    identity: JSON.stringify([s.id, s.error.at, s.error.message]), actions: [
+      {label: 'Retry', run: async () => { await api('/api/control', {run_id:s.id,action:'retry'}); toast('Trying again.'); }},
+      {label: 'Stop the run', run: async () => { await api('/api/control', {run_id:s.id,action:'stop'}); toast('Stopped. Resume to carry on.'); }},
+    ]});
+}
+
+function renderStatus(s) {
+  const dot = $("#sdot"); dot.className = "dot " + (s ? (s.paused && s.status === "running" ? "paused" : s.status) : "");
+  if (!s) { $("#stext").textContent = "No session yet"; $("#ctl").innerHTML = ""; return; }
+  const word = s.stop_reason?.rule === "Research reading pending" ? "Research paused" : {booting: "Starting", waiting: "Waiting for you", running: "Working", paused: "Paused", restart: "Restarting",
+    done: "Done", stopped: "Stopped", error: "Problem"}[s.status] || s.status;
+  const why = s.stop_reason ? `<details class="stopwhy"><summary>${esc(s.stop_reason.rule)}</summary><p>${esc(s.stop_reason.why)}</p><p class="hint">${esc(s.stop_reason.next)}</p></details>` : "";
+  const ck = s.checklist || [];
+  const ckText = ck.length ? `  <span class="hint">Checklist: ${ck.filter(i => i.done).length} of ${ck.length} done.</span>` : "";
+  $("#stext").innerHTML = `<b>${esc(word)}</b>  ${s.stop_reason ? "" : esc(s.detail || "")}${why}${ckText}${s.sandbox_on ? `  <span class="hint">Docker sandbox ${s.sandbox_ready ? "ready" : "starting"}</span>` : ""}${["deep", "verify"].includes(s.phase) && ["running", "paused"].includes(s.status) ? `  <span class="hint">round ${s.round} of ${s.max_rounds}</span>` : ""}`;
+  if (s.goal) {
+    const goalStatus = document.createElement('span');
+    goalStatus.className = 'hint';
+    goalStatus.textContent = ` Goal: ${s.goal.status}. Cycles: ${(s.goal.cycles || []).length}. ${s.goal.reason || ''}`;
+    $('#stext').append(goalStatus);
+  }
+  const evidenceCard = createEvidenceCard(s);
+  if (evidenceCard) $("#stext").append(evidenceCard);
+  renderProgress(s);
+  renderErrorCard(s);
+  const b = [];
+  if ((!ACTIVE.includes(s.status) || (past && !s.managed)) && s.status !== "done") b.push(["continue", "Continue", "primary"]);
+  if (past) {
+    $("#ctl").innerHTML = b.map(x => `<button class="btn ${x[2] || ""}" data-act="${x[0]}">${x[1]}</button>`).join("");
+    $("#ctl").querySelector("[data-act=continue]")?.addEventListener("click", () => continueRun(s.id));
+    return;
+  }
+  const active = ACTIVE.includes(s.status);
+  for (const a of s.dead ?? []) b.push(["restart:" + a, "Restart " + labelOf(a), "primary"]);
+  if (s.status === "booting" || (s.status === "waiting" && !(s.dead ?? []).length)) b.push(["ready", "Agents are ready"]);
+  if (active && !s.paused) b.push(["pause", "Pause"]);
+  if (s.paused) b.push(["resume", "Resume", "primary"]);
+  if (s.pending?.length && s.status === "running") b.push(["nudge", "Nudge"], ["skip", "Skip turn"]);
+  if (s.status === "done" && !s.verify_passed && s.chosen) b.push(["more", "One more round"]);
+  if (active) b.push(["stop", "Stop", "danger"]);
+  const ac = s.approval_counts || {};
+  const aprv = (ac.approved || ac.denied || ac.waiting) ? `<button class="aprv" id="aprvBtn" title="Native permission requests and earlier history">Permissions approved ${ac.approved || 0}, denied ${ac.denied || 0}${ac.waiting ? `, <b>${ac.waiting} waiting</b>` : ""}</button>` : "";
+  $("#ctl").innerHTML = aprv + b.map(x => `<button class="btn ${x[2] || ""}" data-act="${x[0]}">${x[1]}</button>`).join("")
+    + (active ? `<button class="icon-btn gear" id="gearBtn" title="Run settings" aria-label="Run settings">⚙</button>` : "");
+  $("#aprvBtn")?.addEventListener("click", () => openSheet("approvals"));
+  $("#gearBtn")?.addEventListener("click", () => openSheet("settings"));
+  $("#ctl").querySelectorAll("[data-act]").forEach(el => el.onclick = async () => {
+    const act = el.dataset.act;
+    if (act.startsWith("restart:")) { await api("/api/restart", {agent: act.slice(8)}); return toast("Restarting " + labelOf(act.slice(8))); }
+    if (act === "continue") return continueRun(s.id);
+    await api("/api/control", {action: act}); });
+}
+
+/* ---------------- continue and add to runs ---------------- */
+function otherRunActive(id) { const L = live?.session; return L && L.id !== id && ACTIVE.includes(L.status); }
+async function continueRun(id) {
+  saveRunDraft();
+  await api("/api/continue", {id}); live=await api('/api/state'); past = null; sel = null; rowCache.clear(); lastInsKey = "";
+  restoreRunDraft();
+  toast("Starting the agents. They catch up from the run's memory."); refresh(); loadSessions();
+}
+async function addToRun(id, text) {
+  await api("/api/followup", {id, text}); live=await api('/api/state'); past = null; sel = null; rowCache.clear(); lastInsKey = "";
+  toast("Added. A new cycle starts with your message."); refresh(); loadSessions(); return true;
+}
+
+function recapHtml(s) {
+  const asks = s.entries.filter(e => e.kind === "task" || e.kind === "followup");
+  const where = s.status === "done" ? "Finished. " + (s.detail ?? "") :
+    `Stopped in ${PHASES.find(p => p[0] === s.phase)?.[1] ?? "Frame"}${s.pending?.length ? ", " + s.pending.length + " open turn" + (s.pending.length > 1 ? "s" : "") : ""}.`;
+  const flags = (s.flags ?? []).length;
+  return `<details class="recap" open><summary>Where this run is</summary><dl class="body">
+    <dt>You asked</dt><dd>${asks.map(e => esc(e.prose.split("\n")[0])).join("<br>Then: ")}</dd>
+    <dt>Status</dt><dd>${esc(where)}</dd>
+    ${flags ? `<dt>Check</dt><dd>${flags} thing${flags > 1 ? "s" : ""} flagged in Insights</dd>` : ""}
+    <dt>Next</dt><dd>${s.status === "done" ? "Chat about the results below. Select Add work to start another work cycle." : "Continue to start the agents and finish the open turns."}</dd></dl></details>`;
+}
+
+/* ---------------- timeline ---------------- */
+function rowHtml(e, s) {
+  const tags = [];
+  if (e.verdict) tags.push(`<span class="tag ${e.verdict === "APPROVED" ? "ok" : "warn"}">${e.verdict === "APPROVED" ? "Approved" : "Revise"}</span>`);
+  if (e.invalid) tags.push('<span class="tag warn">Broke format</span>');
+  else if (e.bounced?.length) tags.push('<span class="tag">Fixed after bounce</span>');
+  if (e.ste?.length) tags.push(`<span class="tag warn">STE ${e.ste.length}</span>`);
+  if (e.bounds?.length) tags.push('<span class="tag warn">Out of bounds</span>');
+  if (e.high_impact) tags.push('<span class="tag warn">High impact</span>');
+  if (e.changed?.length) tags.push(`<span class="tag">${e.changed.length} file${e.changed.length > 1 ? "s" : ""}</span>`);
+  const kind = KIND_LABEL[e.kind] ?? "";
+  return `<button class="row ${sel === "e:" + e.n ? "sel" : ""}" data-sel="e:${e.n}">
+    <span class="time">${esc((e.time_hm ?? "").slice(0, 5))}</span>
+    <span class="who" style="--c:${COLORS[e.author] ?? "var(--quiet)"}">${esc(labelOf(e.author))}</span>
+    <span class="sum">${kind ? `<span class="kind">${kind}</span>` : ""}${esc(e.summary)}</span>
+    <span class="tags">${tags.join("")}</span></button>`;
+}
+
+/* Keyed reconcile: unchanged rows keep their DOM node, so scroll, focus and hover never jump. */
+function isTextEditingTarget(target) {
+  return !!target?.closest?.('input, textarea, select, [contenteditable]:not([contenteditable="false"]), [role="textbox"]');
+}
+function editingWithin(root) {
+  return isTextEditingTarget(document.activeElement) && root.contains(document.activeElement);
+}
+const rowCache = new Map();
+function patchList(container, items) {
+  const keep = new Set(items.map(i => i.key));
+  for (const [k, v] of rowCache) if (!keep.has(k)) { v.el.remove(); rowCache.delete(k); }
+  let prev = null;
+  for (const it of items) {
+    let c = rowCache.get(it.key);
+    const editingQuestion = c && c.el.dataset?.questionKey && c.el.dataset.open === 'true'
+      && questionRegistry.get(c.el.dataset.questionKey)?.open && editingWithin(c.el);
+    if ((!c || c.html !== it.html) && !editingQuestion) {
+      const tpl = document.createElement("template"); tpl.innerHTML = it.html.trim();
+      const el = tpl.content.firstElementChild;
+      if (c) c.el.replaceWith(el);
+      c = {el, html: it.html}; rowCache.set(it.key, c);
+      el.querySelectorAll?.("[data-sel]").forEach(b => b.onclick = () => select(b.dataset.sel));
+      if (el.dataset?.sel) el.onclick = () => select(el.dataset.sel);
+      el.querySelectorAll?.("[data-pane]").forEach(b => b.onclick = () => { insTab = "pane"; select("p:" + b.dataset.pane); });
+      el.querySelector?.("#backLive")?.addEventListener("click", () => { past = null; sel = null; refresh(); });
+      el.querySelector?.("#emptyNew")?.addEventListener("click", () => showStart());
+      wireQuestionCard(el);
+    }
+    const want = prev ? prev.nextSibling : container.firstChild;
+    if (want !== c.el) container.insertBefore(c.el, want);
+    prev = c.el;
+  }
+  const mine = new Set(items.map(i => rowCache.get(i.key)?.el));
+  [...container.children].forEach(ch => { if (!mine.has(ch)) ch.remove(); });   // drop anything left from a cleared cache
+}
+
+function loadInputDrafts(key) {
+  try {
+    const rows=JSON.parse(sessionStorage.getItem(key) || '[]');
+    return new Map(Array.isArray(rows) ? rows.filter(row=>Array.isArray(row) && row.length===2 && row.every(value=>typeof value==='string')) : []);
+  } catch { return new Map(); }
+}
+function saveInputDrafts(key, drafts) {
+  try { sessionStorage.setItem(key,JSON.stringify([...drafts])); } catch {}
+}
+const questionRegistry = new Map(), surfacedQuestions = new Set();
+const questionDrafts = loadInputDrafts('duo.question-drafts'), inspectorDrafts = loadInputDrafts('duo.inspector-drafts');
+function runQuestions(s) {
+  const result=[];
+  for (const q of s?.broker?.questions || []) result.push({id:q.question_id,kind:'task',text:q.text,
+    open:q.status==='open',answer:q.answer,recommendation:q.recommendation,reason:q.reason,dependsOn:q.depends_on,
+    recommendationActor:q.recommendation_actor,delegatable:q.delegatable,choices:(q.options || []).map(text=>({label:text,value:text}))});
+  for (const q of s?.waiting || []) if(q.kind==='approval') result.push({id:'approval:'+q.agent+':'+q.question,
+    kind:'approval',agent:q.agent,text:q.question,open:true,choices:[{label:'Approve native request',value:true},{label:'Deny native request',value:false}]});
+  for (const q of result) { q.runId=s.id; questionRegistry.set(s.id+':'+q.id,q); }
+  return result;
+}
+function questionCard(q,s) {
+  const enabled=q.open && (q.kind==='task' || !past);
+  return `<section class="question-card" data-open="${q.open}" data-question-key="${esc(s.id+':'+q.id)}"><h3>${q.open?'Question for you':'Decision recorded'}</h3>
+    <div class="prose">${md(q.text)}</div>${q.kind!=='approval' ? `<p><b>Agent recommendation${q.recommendationActor?' · '+esc(q.recommendationActor):''}:</b> ${esc(q.recommendation || 'Not recorded yet. The agent should explain its preferred option.')}</p>${q.reason?`<p><b>Why:</b> ${esc(q.reason)}</p>`:''}${q.dependsOn?`<p><b>Work waiting on this answer:</b> ${esc(q.dependsOn)}</p>`:''}`:''}${q.open ? `<form data-question="${esc(s.id+':'+q.id)}">
+    <div class="question-options">${q.choices.map(c=>`<button type="button" class="btn" data-question-option="${esc(JSON.stringify(c.value))}" ${enabled?'':'disabled'}>${esc(c.label)}</button>`).join('')}</div>
+    ${q.kind==='approval' ? '<p class="hint">These buttons answer the existing native permission request.</p>' :
+      `<label>Your answer<textarea name="answer" placeholder="Choose an option or write your own answer" ${enabled?'':'disabled'}></textarea></label><button class="btn primary" type="submit" ${enabled?'':'disabled'}>Send answer</button>${q.delegatable?`<button class="btn" type="button" data-question-delegate ${enabled?'':'disabled'}>Let the agent decide within the existing scope</button>`:''}`}
+    <p class="question-error" role="status"></p>${!enabled?'<p class="hint">Open the active run to answer this question.</p>':''}</form>` :
+    `<p class="question-answer"><b>You:</b> ${esc(q.answer || 'Answered')}</p>`}</section>`;
+}
+async function sendQuestionAnswer(q,value,custom=false) {
+  const payload={id:q.runId,kind:q.kind,question_id:q.id};
+  if(q.kind==='approval') Object.assign(payload,{agent:q.agent,question:q.text,approve:value});
+  else payload.text=value;
+  return api('/api/question-answer',payload);
+}
+function wireQuestionCard(root) {
+  for(const form of root.querySelectorAll?.('form[data-question]') || []) {
+    const send=async(value,custom)=>{
+      const q=questionRegistry.get(form.dataset.question); if(!q || !q.open) return;
+      for(const button of form.querySelectorAll('button')) button.disabled=true;
+      try { await sendQuestionAnswer(q,value,custom); if(!custom || form.elements.answer?.value.trim()===value) questionDrafts.delete(form.dataset.question); saveInputDrafts('duo.question-drafts',questionDrafts); }
+      catch(error) { form.querySelector('.question-error').textContent=error.message; }
+      finally { for(const button of form.querySelectorAll('button')) button.disabled=false; }
+    };
+    form.onsubmit=event=>{event.preventDefault();const text=form.elements.answer?.value.trim();if(text)send(text,true);};
+    if(form.elements.answer) {
+      const input=form.elements.answer;
+      input.value=questionDrafts.get(form.dataset.question) || '';
+      input.oninput=()=>{questionDrafts.set(form.dataset.question,input.value);saveInputDrafts('duo.question-drafts',questionDrafts);};
+    }
+    const delegate=form.querySelector('[data-question-delegate]');if(delegate)delegate.onclick=()=>send('Use your recommendation within the existing task scope and existing resource limits. Record your choice and reasoning.',true);
+    for(const button of form.querySelectorAll('[data-question-option]')) button.onclick=()=>send(JSON.parse(button.dataset.questionOption),false);
+  }
+}
+
+function renderTimeline(s) {
+  const tl = $("#timeline");
+  if (!s) {
+    const lu = live?.last_unfinished;
+    patchList(tl, [{key: "empty" + (lu?.id ?? ""), html: `<div class="empty">${lu ? `<div class="resume-card" style="text-align:left"><div><span class="hint">Continue where you left off</span><b>${esc(lu.title)}</b></div><button class="btn primary" id="emptyResume">Continue</button></div>` : ""}
+      <p style="font:500 20px/1.3 var(--serif);color:var(--ink)">Give the agents something to work on.</p>
+      <p>A large model plans, a second reviews the plan, a smaller one builds, and another reviews the work.</p>
+      <button class="btn ${lu ? "" : "primary"}" id="emptyNew">New task</button></div>`}]);
+    $("#emptyResume")?.addEventListener("click", () => continueRun(lu.id));
+    return;
+  }
+  const near = !isTextEditingTarget(document.activeElement) && runPane === 'chat' && tl.scrollHeight - tl.scrollTop - tl.clientHeight < 140;
+  const items = [];
+  if (past && live?.session) items.push({key: "ro", html: `<div class="readonly">This is a saved run. You can chat about it without starting work. <button id="backLive">Back to the current run</button></div>`});
+  if(s.prior_run_context) items.push({key:'prior:'+s.id,html:`<section class="question-card"><h3>Previous run context</h3><p>This run starts from the saved ${s.prior_run_context.kind==='detailed'?'completion summary':'state handoff'} of ${esc(s.prior_run_context.run_id)}.</p><p class="hint">The current request controls the work. Earlier results still need to match the current files.</p></section>`});
+  if (!ACTIVE.includes(s.status)) items.push({key: "recap:" + s.id + s.status + s.entries.length, html: recapHtml(s)});
+  let lastPhase = null, lastCycle = 1;
+  for (const e of s.entries) {
+    if (["warning","error","recovery"].includes(e.kind) || e.invalid || ["blocked","needs_human"].includes(e.outcome)) continue;
+    if (e.author === "human" && e.kind === "decision") continue;      // the decision row already says what you chose
+    if ((e.cycle ?? 1) !== lastCycle) {
+      lastCycle = e.cycle ?? 1; lastPhase = null;
+      items.push({key: "cyc:" + e.n, html: `<div class="divider cycle">Cycle ${lastCycle}: ${esc((e.prose ?? "").split("\n")[0].slice(0, 90))}</div>`});
+    }
+    const ph = e.phase === "task" ? null : e.phase;
+    if (ph && ph !== lastPhase && !["decide", "done"].includes(ph)) {
+      const p = [["refs", "References"], ...PHASES].find(x => x[0] === ph);
+      items.push({key: "div:" + e.n, html: `<div class="divider">${p ? p[1] : ph}</div>`}); lastPhase = ph;
+    }
+    items.push({key: s.id + ":" + e.n, html: rowHtml(e, s)});
+  }
+  for (const p of s.pending ?? []) {
+    items.push({key: "w:" + p.n + p.agent, html: `<div class="working" style="--c:${COLORS[p.agent]}"><span class="time"></span><span class="who" style="--c:${COLORS[p.agent]}">${esc(labelOf(p.agent))}</span>
+      <span><span class="pulse"><i></i><i></i><i></i></span>  ${esc(KIND_LABEL[p.kind] ?? p.kind)}${p.option_ids?.length ? " " + esc(p.option_ids.join(", ")) : ""}  <span class="hint">${fmtSecs(Math.floor(p.age / 5) * 5)}</span></span>
+      <button class="btn" data-pane="${esc(p.agent)}">Watch</button>${p.now ? `<span class="now" title="${esc(p.now)}">${esc(p.now)}</span>` : ""}</div>`});
+  }
+  for (const question of runQuestions(s)) items.push({key:'question:'+s.id+':'+question.id,html:questionCard(question,s)});
+  const conversations=[...(s.helper || []).map((h,i)=>({...h,id:'legacy-'+i,status:h.a?'answered':'legacy-interrupted'})),...(s.conversation || [])];
+  for(const h of conversations) items.push({key:'conversation:'+s.id+':'+h.id,html:`<section class="question-card"><h3>You asked</h3><div class="prose">${md(h.q)}</div><h4>${esc(h.provider || 'Agent')}</h4>${h.a ? `<div class="prose">${md(h.a)}</div>` : `<p class="hint">${h.status==='queued'?'Question queued.':h.status==='working'?'Preparing an answer…':'The answer did not finish. Send the question again or use Retry answer below.'}</p>`}${['failed','interrupted'].includes(h.status)?`<button type="button" class="btn" data-chat-retry="${esc(h.id)}">Retry answer</button>`:''}</section>`});
+  patchList(tl, items);
+  tl.querySelectorAll('[data-chat-retry]').forEach(button=>button.onclick=async()=>{await api('/api/ask',{run_id:s.id,retry_id:button.dataset.chatRetry});await refreshConversation(s.id);});
+  if (near) tl.scrollTo({top: tl.scrollHeight, behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth"});
+}
+
+function renderRunMap(s) {
+  renderTaskMap($("#taskmap-root"), s?.broker || {nodes:[]}, {
+    runId:s?.id, helper:[...(s?.helper || []),...(s?.conversation || [])], runStatus:s?.status,
+    createCompletionSummary:() => api('/api/completion-summary', {id:s.id}),
+    openCompletionSummary:() => {setRunPane('summary');renderSummaryDocument(s);},
+    prepareNextRun:async path => {
+      const saved = await api('/api/task-file?' + new URLSearchParams({id:s.id,path}));
+      if (saved.kind !== 'text') throw new Error('The next-run prompt is not readable text.');
+      await showStart(saved.content,s.workspace);
+    },
+    readFile:path => api('/api/task-file?' + new URLSearchParams({id:s.id, path})),
+    readErrors:() => api('/api/task-errors?' + new URLSearchParams({id:s.id})),
+    createSummary:task_id => api('/api/task-summary', {id:s.id, task_id}),
+    askHelper:focus => api('/api/ask', {id:s.id, question:'Explain the selected task, its saved progress, and which recorded errors affect its remaining work.', focus}),
+  });
+}
+
+const summaryFiles = new Map();
+function renderSummaryDocument(s) {
+  const root=$('#summary-pane'); if(!root || runPane!=='summary') return;
+  const stage=s?.broker?.completion_summary;
+  const record=stage && (['ready','superseded'].includes(stage.status) ? stage : stage.previous);
+  const identity=JSON.stringify([s?.id,s?.status,stage]);
+  if(root.dataset.identity===identity) return; root.dataset.identity=identity;
+  root.replaceChildren();
+  const article=document.createElement('article'); article.className='summary-document';root.append(article);
+  const heading=document.createElement('h2'); heading.textContent='Detailed summary'; article.append(heading);
+  const note=document.createElement('p'); note.className='hint';
+  note.textContent=record ? `Version ${record.version} · ${record.model}` : stage?.status==='writing' ? 'The task is done. The summary agent is preparing the document.' : s?.status==='done' ? 'The task is done. Prepare its detailed summary below.' : 'The detailed summary is produced after this run is marked done.';
+  article.append(note);
+  if(stage && stage.status!=='ready' && record) { const warning=document.createElement('p');warning.textContent='This is an earlier saved summary. Check the current run and evidence before reusing it.';article.append(warning); }
+  if(s?.status==='done' && stage?.status!=='writing') {
+    const retry=document.createElement('button');retry.className='btn';retry.textContent=record?'Create a new summary version':'Create or retry summary';
+    retry.onclick=async()=>{retry.disabled=true;try{await api('/api/completion-summary',{id:s.id});}catch(error){note.textContent=error.message;}finally{retry.disabled=false;}};article.append(retry);
+  }
+  if(!record) return;
+  const prepare=document.createElement('button'); prepare.className='btn';prepare.textContent='Prepare another run';
+  prepare.onclick=async()=>{const seed=await api('/api/task-file?'+new URLSearchParams({id:s.id,path:record.next_run}));await showStart(seed.content,s.workspace);};
+  article.append(prepare);
+  const body=document.createElement('div');body.className='prose';body.textContent='Loading the saved summary document…';article.append(body);
+  const key=s.id+':'+record.path+':'+record.sha256;
+  if(!summaryFiles.has(key)) summaryFiles.set(key,api('/api/task-file?'+new URLSearchParams({id:s.id,path:record.path})).catch(error=>{summaryFiles.delete(key);throw error;}));
+  summaryFiles.get(key).then(file=>{if(root.isConnected && root.dataset.identity===identity) body.innerHTML=file.kind==='text'?md(file.content):'The saved summary is not a text document.';})
+    .catch(error=>{if(root.isConnected && root.dataset.identity===identity){body.textContent=error.message;root.dataset.identity='';}});
+}
+
+let lastSel = null;
+function select(key) {
+  if (key) setRunPane('chat');
+  sel = key; if (key?.startsWith("e:")) insTab = "reply";
+  const swap = () => { lastInsKey = ""; refresh(); };
+  if (document.startViewTransition && !matchMedia("(prefers-reduced-motion: reduce)").matches) document.startViewTransition(swap); else swap();
+}
+
+/* ---------------- inspector ---------------- */
+let lastInsKey = "";
+async function loadReadiness() {
+  const box = $("#readyBox");
+  if (!box) return;
+  const { checks } = await api("/api/ready");
+  box.innerHTML = checks.map(c => `<div class="ready-row ${c.ok ? "ok" : "bad"}"><span>${c.ok ? "✓" : "!"}</span><span>${esc(c.label)}</span>${c.fix ? `<span class="hint">${esc(c.fix)}</span>` : ""}</div>`).join("");
+}
+
+function renderInspector(s) {
+  const ins = $("#inspector");
+  $("#app").classList.remove("wide");
+  const k = JSON.stringify([s?.id, sel, insTab, !!past, s?.conversation,
+    sel?.startsWith("e:") ? s?.entries.length : null, sel === "chat" ? [s?.entries.length, (s?.helper || []).length, JSON.stringify((s?.helper || []).map(h => !!h.a))] : null, !sel && s ? [s.stats, s.token_use, s.flags, s.roles, s.role_models, s.task_type, s.agent_status, s.restarts] : null]);
+  if (k === lastInsKey) return;
+  const identity = JSON.stringify([s?.id, sel, insTab, !!past]);
+  if (ins.dataset.renderIdentity === identity && editingWithin(ins)) return;
+  lastInsKey = k;
+  ins.dataset.renderIdentity = identity;
+  if (!s) { ins.innerHTML = insightsHtml(null); return; }
+  if (sel === "chat") return renderChat(s);
+  if (sel && (sel.startsWith("e:") || sel.startsWith("p:"))) return renderTurn(s);
+  ins.innerHTML = insightsHtml(s);
+  ins.querySelectorAll("[data-sel]").forEach(el => el.onclick = () => select(el.dataset.sel));
+  ins.querySelectorAll("[data-watch]").forEach(el => el.onclick = () => { insTab = "pane"; select("p:" + el.dataset.watch); });
+  ins.querySelectorAll("[data-restart]").forEach(el => el.onclick = async () => {
+    if (!(await confirmBox("Restart " + labelOf(el.dataset.restart) + "? Its current turn is sent again.", "Restart"))) return;
+    await api("/api/restart", {agent: el.dataset.restart}); toast("Restarting " + labelOf(el.dataset.restart)); });
+  $("#openTerm")?.addEventListener("click", async () => { await api("/api/terminal", {}); });
+  $("#constrainBtn")?.addEventListener("click", async () => { const v = $("#constraintText").value.trim(); if (!v) return toast("Write the rule first.");
+    await api("/api/steer", {action: "constrain", value: v}); $("#constraintText").value = ""; toast("Added. The agents read it before they go on."); });
+}
+
+function agentsHtml(s) {
+  const word = {working: "Working", idle: "Waiting for its turn", stopped: ACTIVE.includes(s.status) ? "Stopped" : "Off"};
+  return `<div class="agent-list">${s.agents.map(a => {
+    const st = s.agent_status?.[a] ?? "idle", r = s.restarts?.[a] ?? 0;
+    return `<div class="agent-row"><span class="who" style="--c:${COLORS[a]}">${esc(labelOf(a))}</span>
+      <span class="hint">${word[st]}${r ? `, restarted ${r}×` : ""}</span>
+      <span class="agent-acts">${past || !ACTIVE.includes(s.status) ? "" : `<button class="btn" data-watch="${a}">Watch</button><button class="btn" data-restart="${a}">Restart</button>`}</span></div>`;
+  }).join("")}</div>
+  ${past || !ACTIVE.includes(s.status) ? '<p class="hint">The agents are off. Continue or add to this run to start them.</p>'
+    : '<button class="btn" id="openTerm" style="margin-top:8px">Open in Terminal</button><p class="hint">If an agent exits, for example after updating itself, Duo restarts it and hands back its turn.</p>'}`;
+}
+
+const PROVIDER_NAME = {anthropic: "Claude", openai: "Codex", "google-antigravity": "Antigravity"};
+function tokenUseHtml(u) {
+  if (!u || !u.turns) return '<p class="hint">Appears after the first turn. Tokens count what Duo sends and receives, not files an agent reads on its own. Time is wall time per turn.</p>';
+  const k = n => n >= 1000 ? (n / 1000).toFixed(1) + "k" : String(n);
+  const t = s => s >= 60 ? Math.floor(s / 60) + "m " + (s % 60) + "s" : s + "s";
+  const kinds = Object.entries(u.by_kind).sort((a, b) => b[1].seconds - a[1].seconds).map(([kind, v]) =>
+    `<div class="budget"><span>${esc(KIND_LABEL[kind] || kind)}</span><span class="hint">${v.turns} turn${v.turns > 1 ? "s" : ""}, ${t(v.seconds)}, ${k(v.in)} in, ${k(v.out)} out</span></div>`).join("");
+  const top = u.top.map(r => `<button class="linkish" data-sel="e:${r.n}">Turn ${r.n} ${esc(r.kind)}: ${t(r.seconds)}${r.attempts > 1 ? ", " + r.attempts + " tries" : ""}</button>`).join(" ");
+  return `<p><b>${t(u.seconds)}</b> elapsed over ${u.turns} turns. <b>${k(u.in)}</b> tokens in, <b>${k(u.out)}</b> out (estimate).</p>${kinds}<p class="hint">Slowest: ${top}</p>`;
+}
+
+function insightsHtml(s) {
+  if (!s) return `<div class="ins-head"><h3>How it works</h3></div><div class="ins-body prose">
+    <ol><li><b>Frame.</b> One agent restates your task and the test for success.</li>
+    <li><b>Diverge.</b> Every agent lists options on its own, at least four each.</li>
+    <li><b>Scout.</b> Each option gets one cheap probe before anyone commits.</li>
+    <li><b>Score.</b> Agents score all options on a rubric for the task type, without seeing each other's scores.</li>
+    <li><b>Decide.</b> The best option wins, or you choose when the decision is big.</li>
+    <li><b>Build and verify.</b> One agent builds, another reviews, then the work is checked against the success test.</li></ol>
+    <p class="hint">Agents write to each other in Simplified Technical English. Duo checks every message and sends broken ones back once.</p></div>`;
+  const st = s.stats || {};
+  const flags = s.flags || [];
+  const per = st.per_phase || {};
+  const budgets = PHASES.filter(p => per[p[0]]).map(([k, label]) => {
+    const v = per[k]; const r = Math.min(1, v.turns / Math.max(1, v.budget));
+    return `<div class="budget"><span>${label}</span><span class="bar"><i class="${v.turns > v.budget ? "over" : ""}" style="width:${Math.round(r * 100)}%"></i></span><span class="hint">${v.turns}/${v.budget} turns</span></div>`;
+  }).join("") || '<p class="hint">Budgets appear as phases run.</p>';
+  const roles = s.role_models?.length ? s.role_models.map(r => `<dt>${esc(r.role[0].toUpperCase() + r.role.slice(1))}</dt><dd><b>${esc(PROVIDER_NAME[r.selected_provider] || r.selected_provider)}</b><span class="model-name">${esc(r.selected_model)}</span><span class="hint">${r.escalated ? 'Escalated · ' : ''}${esc(r.size)}${r.fallback ? ' · ' + esc(r.fallback) : ''} · agentic</span></dd>`).join('') : s.roles ? Object.entries(s.roles).map(([r, a]) => `<dt>${esc(r[0].toUpperCase() + r.slice(1))}</dt><dd><span class="who" style="--c:${COLORS[a]}">${esc(labelOf(a))}</span></dd>`).join("") : "";
+  const sameProvider = (s.review_independence || []).map(w => w.review === 'plan' ? 'plan review' : 'code review');
+  const independenceNote = sameProvider.length
+    ? `<p class="hint" role="note">The ${esc(sameProvider.join(' and '))} run on the same AI provider as the agent they review. Sign in to a second CLI (Claude, Codex or Antigravity) to get a review from a different model family.</p>` : '';
+  const unanswered = (s.entries || []).filter(e => e.author === "human" && e.kind === "message").length;
+  return `<div class="ins-head"><h3>Insights</h3><button class="btn" data-sel="chat" style="margin-left:auto">Chat${unanswered ? " (" + unanswered + ")" : ""}</button></div><div class="ins-body">
+    <div class="section"><div class="metrics">
+      <div class="metric"><b>${st.turns || 0}</b><span>agent turns</span></div>
+      </div></div>
+    <div class="section"><h4>What was built</h4>${(s.shots || []).length
+      ? `<div class="refgrid">${s.shots.map(x => x.kind === "image"
+          ? `<a href="/api/shot?id=${encodeURIComponent(s.id)}&f=${encodeURIComponent(x.file)}" target="_blank" title="Round ${x.round}"><img loading="lazy" alt="Screenshot of round ${x.round}" src="/api/shot?id=${encodeURIComponent(s.id)}&f=${encodeURIComponent(x.file)}"><span class="hint">Round ${x.round}</span></a>`
+          : `<a href="/api/shot?id=${encodeURIComponent(s.id)}&f=${encodeURIComponent(x.file)}" target="_blank" class="hint">Round ${x.round}: smoke output${x.warning ? " (" + esc(x.warning) + ")" : ""}</a>`).join("")}</div>`
+      : '<p class="hint">No screenshots yet. Duo takes one of the app after each passing smoke test when Docker is on.</p>'}</div>
+    <div class="section"><h4>Things to check</h4>${flags.length ? flags.map(f =>
+      `<div class="flag"><span>${esc(f.text)}</span><button data-sel="e:${f.entry_n}">Turn ${f.entry_n}</button></div>`).join("")
+      : '<p class="hint">Nothing unusual so far. Duo watches for rubber-stamp approvals, missing verification, scope creep and loops.</p>'}</div>
+    <div class="section"><h4>Agents</h4>${agentsHtml(s)}</div>
+    <div class="section"><h4>Budget by phase</h4>${budgets}</div>
+    <div class="section"><h4>Token use (estimate)</h4>${tokenUseHtml(s.token_use)}</div>
+    <div class="section"><h4>Roles</h4>${independenceNote}<dl class="roles">${roles}</dl></div>
+    <div class="section"><h4>Add a rule</h4><label class="field"><span>Applies to the rest of the run</span><textarea id="constraintText" rows="2" placeholder="For example: keep it under 200 lines, or use only the standard library."></textarea></label>
+      <div><button class="btn" id="constrainBtn">Add rule</button></div></div></div>`;
+}
+
+function renderTurn(s) {
+  const ins = $("#inspector");
+  const e = sel.startsWith("e:") ? s.entries.find(x => x.n === +sel.slice(2)) : null;
+  const shownAgent = e ? e.author : sel.slice(2);
+  const agent = Object.keys(s.labels || {}).find(a => s.panes && s.panes[a] && s.labels[a] === shownAgent) || shownAgent;
+  const canPane = !past && s.panes && s.panes[agent];
+  if (!canPane && insTab === "pane") insTab = "reply";
+  const tabs = `<div class="tabs">${e ? `<button data-tab="reply" class="${insTab === "reply" ? "on" : ""}">Reply</button>` : ""}${canPane ? `<button data-tab="pane" class="${insTab === "pane" ? "on" : ""}">Live pane</button>` : ""}</div>`;
+  let body = "";
+  if (insTab === "reply" && e) {
+    const issues = [...(e.errors || []).map(x => "Format: " + x), ...(e.bounds || []).map(x => "Bounds: " + x),
+      ...(e.ste || []).map(v => `STE ${v.rule}: ${v.detail}. "${v.sentence.slice(0, 90)}"`)];
+    body = `<p class="dec-meta"><span class="who" style="--c:${COLORS[e.author]};display:inline-flex">${esc(labelOf(e.author))}</span>  ${esc(KIND_LABEL[e.kind] || e.kind)} at ${esc(e.time_hm)}${e.duration ? ", took " + fmtSecs(e.duration) : ""}</p>
+      <p style="font:500 15px/1.4 var(--serif);margin:0 0 12px">${esc(e.summary)}</p>
+      ${e.task_id ? `<p class="hint">Task ID: ${esc(e.task_id)}${e.complete === false ? " · Building" : ""}</p>` : ""}
+      ${e.outputs && e.outputs.length ? `<p class="hint">Output: ${e.outputs.map(esc).join(", ")}</p>` : ""}
+      ${e.bounced && e.bounced.length ? `<p class="hint">Duo sent the first version back for: ${esc(e.bounced.slice(0, 3).join("; "))}</p>` : ""}
+      ${issues.length ? `<ul class="issues">${issues.map(x => `<li>${esc(x)}</li>`).join("")}</ul>` : ""}
+      ${e.changed && e.changed.length ? `<p class="hint">Changed: ${e.changed.map(esc).join(", ")}</p>` : ""}
+      <div class="prose">${md(e.prose)}</div>`;
+  } else if (canPane) {
+    body = `<pre class="paneview" id="paneview">Loading the ${esc(labelOf(agent))} pane…</pre>
+      <form class="inline" id="paneform"><input id="panein" placeholder="Type into this pane" aria-label="Type into this pane"><button class="btn">Send</button></form>
+      <div class="keys">${["Enter", "Escape", "1", "2", "y", "Up", "Down", "Tab", "C-c"].map(k => `<button data-key="${k}">${{Escape: "Esc", Up: "↑", Down: "↓", "C-c": "Ctrl-C"}[k] || k}</button>`).join("")}</div>
+      <p class="hint">Use this to answer a prompt in the agent's terminal. Updates every 2 seconds.</p>`;
+  }
+  ins.innerHTML = `<div class="ins-head"><button class="icon-btn" id="closeIns" aria-label="Back to insights">✕</button><h3>${e ? "Turn " + e.n : labelOf(agent)}</h3>${tabs}</div><div class="ins-body">${body}</div>`;
+  $("#closeIns").onclick = () => select(null);
+  ins.querySelectorAll("[data-tab]").forEach(b => b.onclick = () => { insTab = b.dataset.tab; lastInsKey = ""; renderInspector(S()); });
+  if ($("#paneform")) {
+    $("#paneform").onsubmit = async ev => { ev.preventDefault(); await api("/api/keys", {agent, text: $("#panein").value, enter: true}); $("#panein").value = ""; loadPane(agent); };
+    ins.querySelectorAll("[data-key]").forEach(b => b.onclick = async () => { await api("/api/keys", {agent, key: b.dataset.key}); loadPane(agent); });
+    paneAgent = agent; loadPane(agent);
+  } else paneAgent = null;
+}
+let paneAgent = null;
+async function loadPane(agent) {
+  try { const j = await api("/api/pane?agent=" + encodeURIComponent(agent)); const el = $("#paneview"); if (!el) return;
+    const bottom = el.scrollHeight - el.scrollTop - el.clientHeight < 40; el.textContent = j.text.replace(/\s+$/, "") || "(empty)"; if (bottom) el.scrollTop = el.scrollHeight; } catch (_) {}
+}
+setInterval(() => { if (insTab === "pane" && paneAgent && $("#paneview")) loadPane(paneAgent); }, 2000);
+
+/* ---------------- start screen ---------------- */
+async function showStart(seed = '', workspace = null) {
+  if(view !== 'start') saveRunDraft();
+  $("#app").classList.remove("page-view");
+  view = "start"; past = null; sel = null;
+  const [projects] = await Promise.all([api("/api/projects")]);
+  const agents = (live && live.agents) || [];
+  if (!startForm.agents) startForm.agents = agents.map(a => a.id);
+  startForm.mode = startForm.mode || live?.defaults?.mode || 'big';
+  const known = [["claude", "Claude"], ["codex", "Codex"], ["agy", "Antigravity"]];
+  const chips = known.map(([id, label]) => { const a = agents.find(x => x.id === id);
+    return a ? `<label class="chip" style="--c:${COLORS[id]}"><input type="checkbox" data-agent="${id}" ${startForm.agents.includes(id) ? "checked" : ""}> ${label} <small>${esc((a.version || "").replace(/^[^\d]*/, "").slice(0, 14))}</small></label>`
+             : `<span class="chip missing" title="Install the ${label} CLI, then press Check again">${label} not installed</span>`; }).join("");
+  
+  const others = (live && live.other_agents) || [];
+  const otherLine = others.length ? `<p class="hint">Also found, not launched yet: ${others.map(o => esc(o.label) + (o.version ? " " + esc(o.version.slice(0, 24)) : "")).join(", ")}</p>` : "";
+  const seg = (name, opts, val) => `<div class="seg" role="radiogroup">${opts.map(([v, l]) => `<button type="button" role="radio" aria-checked="${v === val}" class="${v === val ? "on" : ""}" data-seg="${name}" data-val="${v}">${l}</button>`).join("")}</div>`;
+  const lu = live?.last_unfinished;
+  $("#main").innerHTML = `<div class="start"><form class="start-inner" id="startForm">
+      ${lu ? `<div class="resume-card"><div><span class="hint">Continue where you left off</span><b>${esc(lu.title)}</b></div><button type="button" class="btn primary" id="resumeLast">Continue</button></div>` : ""}
+      <div class="readiness" id="readyBox" aria-live="polite"></div>
+      <label class="big" for="task">What should the agents work on?</label>
+      <textarea class="task" id="task" placeholder="Describe the goal, not the solution. For example: find the fastest way to sync 10,000 photos between two Macs without a cloud service."></textarea>
+      <div class="field"><span>Agents</span><div class="agents">${chips}<button type="button" class="btn" id="rescan">Check again</button></div>${otherLine}
+        <small>${agents.length > 1 ? "Different models catch each other's mistakes. Two or three works best." : agents.length === 1 ? "One CLI can run separate planning, coding, and independent review agents." : "No agent CLIs found. Install Claude Code, Codex or Antigravity and sign in."}</small></div>
+      <div class="field"><span>Type of task</span>${seg("task_type", [["auto", "Let the agents decide"], ["programming", "Programming"], ["research", "Research"], ["general", "General"]], startForm.task_type)}
+        <small>Sets the rubric. Programming uses the Ponytail ladder and a design-pattern debate. Research weights evidence and feasibility.</small></div>
+      <div class="field"><span>When should Duo ask you?</span>${seg('mode',[['big','Important choices'],['always','Every ranked choice'],['auto','Let agents choose']],startForm.mode)}<small>Questions appear in Chat. Native tool permissions stay native.</small></div>
+      <div class="row2">
+        <div class="field"><span>Project</span><select id="project"><option value="">New project</option>${projects.projects.map(p => `<option value="${esc(p.name)}">${esc(p.name)}</option>`).join("")}</select>
+          <input type="text" id="pname" placeholder="Name, or leave empty to name it after the task" style="margin-top:6px"><small id="projectContext" aria-live="polite"></small></div>
+        <div class="field"><span>Build rounds</span><input type="number" id="rounds" min="1" max="100" value="${(live && live.defaults.max_rounds) || 100}">
+          <small>Review cycles before Duo tries the next-best option.</small></div>
+      </div>
+      <div class="go"><button class="btn primary" type="submit" ${agents.length ? "" : "disabled"}>Start</button>
+        <label class="hint">Projects are saved in <input type="text" id="rootDir" value="${esc(projects.root)}" size="32" title="Change the folder where projects are saved"></label>${S() ? '<button type="button" class="btn" id="cancelStart">Cancel</button>' : ""}</div>
+    </form></div>`;
+  $("#task").value = typeof seed === 'string' ? seed : '';
+  $("#task").focus();
+  document.querySelectorAll("[data-seg]").forEach(b => b.onclick = () => { startForm[b.dataset.seg] = b.dataset.val; b.parentNode.querySelectorAll("button").forEach(x => { x.classList.toggle("on", x === b); x.setAttribute("aria-checked", x === b); }); });
+  document.querySelectorAll("[data-agent]").forEach(c => c.onchange = () => { startForm.agents = [...document.querySelectorAll("[data-agent]:checked")].map(x => x.dataset.agent); });
+  $("#rootDir").onchange = async () => { const draft=$('#task').value; try { await api("/api/config", {root: $("#rootDir").value}); toast("Projects will be saved in " + $("#rootDir").value); showStart(draft); } catch (e) { $("#rootDir").value = projects.root; } };
+  if(workspace){const option=document.createElement('option');option.value='@workspace';option.textContent=workspace;option.dataset.workspace=workspace;$('#project').append(option);$('#project').value=option.value;}
+  const projectFolder=()=>$('#project').selectedOptions[0]?.dataset.workspace || ($('#project').value ? projects.root.replace(/\/$/,'')+'/'+$('#project').value : null);
+  $("#project").onchange = async () => {
+    const folder=projectFolder(),hint=$('#projectContext');$('#pname').style.display=folder?'none':'block';
+    hint.textContent=folder?'Checking saved project context…':'New projects start without previous run context.';
+    if(!folder)return;
+    try{const record=await api('/api/project-context?'+new URLSearchParams({workspace:folder}));if(!hint.isConnected || projectFolder()!==folder)return;
+      hint.textContent=record.run_id?(record.kind==='detailed'?'Duo will read the previous completed run summary: ':'Duo will read saved run facts. A verified detailed summary is unavailable: ')+record.title:'No completed run found in this project.';
+    }catch(error){if(hint.isConnected && projectFolder()===folder)hint.textContent='Saved context could not be checked. Duo checks again when the run starts.';}
+  };
+  $('#project').onchange();
+  loadReadiness();
+  $("#rescan").onclick = async () => { const a = await api("/api/rescan", {}); live.agents = a; startForm.agents = null; showStart(); toast(a.length + " agent" + (a.length === 1 ? "" : "s") + " found"); };
+  if ($("#cancelStart")) $("#cancelStart").onclick = () => leaveStart();
+  $("#resumeLast")?.addEventListener("click", async () => { leaveStart(); await continueRun(lu.id); });
+  $("#startForm").onsubmit = async ev => {
+    ev.preventDefault();
+    const task = $("#task").value.trim(); if (!task) { $("#task").focus(); return toast("Describe the task first."); }
+    if (!startForm.agents.length) return toast("Pick at least one agent.");
+    const body = {task, agents: startForm.agents, task_type: startForm.task_type, mode: startForm.mode, max_rounds: +$("#rounds").value,
+      project: $('#project').value==='@workspace'?'':$("#project").value, workspace:$('#project').selectedOptions[0]?.dataset.workspace || null, project_name: $("#pname").value.trim()};
+    await api("/api/start", body); live=await api('/api/state'); past=null; leaveStart(); restoreRunDraft(); loadSessions(); toast("Starting this run's agents");
+  };
+}
+/* ---------------- home: your features' home panels ---------------- */
+async function showHome() {
+  $("#app").classList.add("page-view");
+  view = "home"; past = null; sel = null;
+  $("#main").innerHTML = `<div class="home"><div class="home-inner">
+      <div class="home-head"><h2>Home</h2><button class="btn primary" id="homeNew">New task</button></div>
+      <details class="home-taskmaps" open><summary>Task maps</summary>
+        <p>Open a saved run to inspect its tasks, summaries, outputs, and diagnostics. Opening a map does not start agents.</p>
+        <div id="homeTaskMaps">Loading saved runs…</div></details>
+      <div class="slot-home" id="slotHome"></div>
+      <p class="hint" id="homeEmpty" hidden>Your features show their panels here. Send feedback to add one, for example a list of your past sessions.</p>
+    </div></div>`;
+  $("#homeNew").onclick = () => showStart();
+  renderHeader(null);
+  const maps = $("#homeTaskMaps");
+  api('/api/sessions').then(list => {
+    if (!maps.isConnected) return;
+    maps.replaceChildren();
+    for (const item of list) {
+      const row = document.createElement('div'); row.className = 'home-taskmap';
+      const copy = document.createElement('div'); const title = document.createElement('strong');
+      title.textContent = item.title; const detail = document.createElement('span');
+      detail.className = 'hint'; detail.textContent = [item.project, STATUS_WORD[item.status] || item.status].filter(Boolean).join(' · ');
+      copy.append(title, detail);
+      const button = document.createElement('button'); button.className = 'btn'; button.textContent = 'Open task map';
+      button.onclick = () => openSavedRun(item.id, 'map').catch(error => toast(error.message));
+      row.append(copy, button); maps.append(row);
+    }
+    if (!list.length) maps.textContent = 'Your task maps appear here after you start a task.';
+  }).catch(() => { if (maps.isConnected) maps.textContent = 'Saved runs could not be loaded. Open a run from Sessions.'; });
+  await window.DuoComponents?.renderSlot($("#slotHome"), "home", {});
+  if (!$("#slotHome")?.children.length) $("#homeEmpty").hidden = false;
+}
+async function showFeatures() {
+  $("#app").classList.add("page-view");
+  view = "page"; past = null; sel = null;
+  $("#main").innerHTML = '<div class="home"><div class="home-inner ext-center" id="extCenter"></div></div>';
+  const {mountFeatures} = await import('/features.js');
+  await mountFeatures($("#extCenter"), {api, esc, toast,
+    onSaved: async () => { DuoComponents.reset(); await DuoComponents.renderNav(); await DuoComponents.renderSlot($("#slotHeader"), "header", {}); },
+    onAdd: async () => { await openSheet("feedback"); $("#fbText").value = "Add a feature that "; $("#fbText").focus(); }});
+}
+function leaveStart() {
+  $("#app").classList.remove("page-view");
+  view = "auto";
+  if (location.hash) history.replaceState(null, "", location.pathname);
+  document.querySelectorAll(".fnav").forEach(x => x.classList.remove("on"));
+  $("#main").innerHTML = `<div class="statusbar" id="statusbar"><span class="dot" id="sdot"></span><span class="statustext" id="stext"></span><span class="ctl" id="ctl"></span></div><div class="progress" id="progress" hidden><i id="progressFill"></i></div><div class="progress-label" id="progressLabel" hidden></div>
+    <div id="runPanes" role="tablist" aria-label="Run views"><button class="btn" id="taskmap-tab" role="tab" aria-controls="taskmap-pane" data-run-pane="map">Task map</button><button class="btn" id="chat-tab" role="tab" aria-controls="timeline" data-run-pane="chat">Chat</button><button class="btn" id="summary-tab" role="tab" aria-controls="summary-pane" data-run-pane="summary">Summary</button></div>
+    <section id="taskmap-pane" role="tabpanel" aria-labelledby="taskmap-tab" tabindex="0"><section id="taskmap-root" aria-label="Task map"></section></section>
+    <div class="timeline" id="timeline" role="tabpanel" aria-labelledby="chat-tab" tabindex="0"></div>
+    <section id="summary-pane" role="tabpanel" aria-labelledby="summary-tab" tabindex="0" hidden></section>
+    <form class="composer" id="composer"><label class="sr" for="msg">Message the agents</label><div class="ctoggle" role="radiogroup" aria-label="Who to talk to"><button type="button" class="on" data-ct="agents">Tell the agents</button><button type="button" data-ct="helper">Ask the helper</button><button type="button" data-ct="work" hidden>Add work</button></div><textarea id="msg" placeholder="Message the agents. They answer you first, before they carry on."></textarea><button class="btn primary" type="submit">Send</button></form>`;
+  rowCache.clear(); lastInsKey = ""; bindComposer(); refresh();
+}
+
+/* ---------------- sessions list ---------------- */
+let sessFilter = "";
+const runDrafts = new Map(JSON.parse(sessionStorage.getItem('duo.run-drafts') || '[]'));
+function saveRunDraft() { if (S()?.id && $('#msg')) {runDrafts.set(S().id, $('#msg').value);sessionStorage.setItem('duo.run-drafts',JSON.stringify([...runDrafts]));} }
+function restoreRunDraft() { if ($('#msg')) $('#msg').value = runDrafts.get(S()?.id) || ''; }
+async function openSavedRun(id, pane) {
+  saveRunDraft();
+  let saved = live?.session?.id === id ? null : await api('/api/session?' + new URLSearchParams({id}));
+  if (saved?.managed) { await api('/api/select',{id}); live=await api('/api/state'); saved=null; }
+  if (view === "start" || view === "home" || view === "page") leaveStart();
+  past = saved;
+  if (pane) setRunPane(pane);
+  sel = null; rowCache.clear(); lastInsKey = ""; refresh(); loadSessions();
+  restoreRunDraft();
+  $("#timeline")?.scrollTo({top:0});
+}
+async function loadSessions() {
+  const list = await api("/api/sessions").catch(() => []);
+  const cur = S() && S().id;
+  const q = sessFilter.toLowerCase();
+  const shown = list.filter(x => !q || (x.title + " " + (x.project ?? "")).toLowerCase().includes(q));
+  const groups = new Map();
+  for (const x of shown) { const k = x.project ?? "Other"; if (!groups.has(k)) groups.set(k, []); groups.get(k).push(x); }
+  const row = x => `<div class="sessrow"><button class="sess ${x.id === cur ? "on" : ""}" data-id="${esc(x.id)}">
+    <span class="t">${esc(x.title)}</span><span class="m">${esc(x.created.slice(5, 16).replace("T", " "))}   ${x.status === "stopped" || x.status === "error" ? "<b>unfinished</b>" : esc(STATUS_WORD[x.status] ?? x.status)}${x.decisions ? "   " + x.decisions + " decision" + (x.decisions > 1 ? "s" : "") : ""}</span></button><button class="sessdel" data-del="${esc(x.id)}" aria-label="Delete this run" title="Delete this run">✕</button></div>`;
+  $("#sessions").innerHTML = (list.length >= 10 ? `<input class="filter" id="sessFilter" placeholder="Filter runs" value="${esc(sessFilter)}">` : "") +
+    `<p class="hint" style="margin:8px">${(live?.runs || []).filter(r=>ACTIVE.includes(r.status)).length} active · limit ${live?.max_active_runs || 4}. Separate projects can run together.</p>` +
+    (shown.length ? [...groups].map(([p, xs]) => `<div class="group"><h3>${esc(p)}</h3>${xs.map(row).join("")}</div>`).join("")
+                  : `<p class="hint" style="margin:0 8px">${list.length ? "No runs match." : "Runs you start show up here."}</p>`);
+  $("#sessFilter")?.addEventListener("input", ev => { sessFilter = ev.target.value; loadSessions().then(() => { const f = $("#sessFilter"); f.focus(); f.setSelectionRange(f.value.length, f.value.length); }); });
+  $("#sessions").querySelectorAll("[data-del]").forEach(b => b.onclick = async () => {
+    if (b.dataset.arm !== "1") { b.dataset.arm = "1"; b.textContent = "Delete?"; b.classList.add("armed"); setTimeout(() => { b.dataset.arm = ""; b.textContent = "✕"; b.classList.remove("armed"); }, 3000); return; }
+    try { await api("/api/delete", {id: b.dataset.del}); toast("Deleted the run."); if (past && past.id === b.dataset.del) past = null; loadSessions(); refresh(); }
+    catch (e) { toast(e.message || "Could not delete that run."); } });
+  $("#sessions").querySelectorAll("[data-id]").forEach(b => b.onclick = async () => {
+    await openSavedRun(b.dataset.id);
+  });
+}
+
+/* ---------------- wiring ---------------- */
+let composeTo = "agents";
+let composerRunId = null;
+function renderComposerState(s) {
+  const form=$('#composer');if(!form)return;
+  form.style.display=s && runPane==='chat'?'flex':'none';
+  if(composerRunId!==s?.id){composerRunId=s?.id;composeTo='agents';}
+  const done=s?.status==='done';
+  if((done && composeTo==='helper') || (!done && composeTo==='work'))composeTo='agents';
+  const agents=form.querySelector('[data-ct=agents]'),helper=form.querySelector('[data-ct=helper]'),work=form.querySelector('[data-ct=work]');
+  agents.textContent=done?'Chat with agent':s && (past || !ACTIVE.includes(s.status))?'Add to run':'Tell the agents';
+  helper.hidden=done;if(work)work.hidden=!done;
+  form.querySelectorAll('[data-ct]').forEach(button=>{button.classList.toggle('on',button.dataset.ct===composeTo);button.setAttribute('aria-checked',String(button.dataset.ct===composeTo));});
+  $('#msg').placeholder=done && composeTo!=='work'?'Ask about the results. This keeps the task marked Done.':composeTo==='work'?'Describe new work. Start work begins another work cycle.':composeTo==='helper'?'Ask about this run without interrupting its workers.':s && (past || !ACTIVE.includes(s.status))?'Add work to this run. This starts another work cycle.':'Message the agents. They answer before continuing.';
+  form.querySelector('[type=submit]').textContent=composeTo==='work'?'Start work':'Send';
+}
+async function refreshConversation(id) {
+  const saved=await api('/api/session?'+new URLSearchParams({id}));
+  if(S()?.id!==id)return;
+  if(past)past=saved;else if(live?.session?.id===id)live.session=saved;
+  refresh();
+}
+function bindComposer() {
+  wireRunPanes();
+  const f = $("#composer"); if (!f) return;
+  f.querySelectorAll('[data-ct]').forEach(button=>button.onclick=()=>{composeTo=button.dataset.ct;renderComposerState(S());});
+  renderComposerState(S());
+  f.onsubmit = async ev => { ev.preventDefault(); if(f.dataset.sending)return; const t = $("#msg").value.trim(); if (!t) return;
+    const s = S();
+    if(s && ((s.status==='done' && composeTo!=='work') || composeTo==='helper')) {
+      const id=s.id;const send=f.querySelector('[type=submit]');send.disabled=true;f.dataset.sending='1';
+      try {await api('/api/ask',{run_id:id,question:t,request_id:crypto.randomUUID(),focus:null});
+        if(S()?.id===id && $('#msg').value.trim()===t){$('#msg').value='';saveRunDraft();}
+        await refreshConversation(id);setRunPane('chat');
+      } finally {send.disabled=false;delete f.dataset.sending;}
+      return;
+    }
+    const questions=runQuestions(s).filter(q=>q.open && q.kind!=='approval');
+    if(composeTo==='agents' && !past && questions.length===1) { await sendQuestionAnswer(questions[0],t,true); $('#msg').value=''; return; }
+    if (s && (past || !ACTIVE.includes(s.status))) { if (await addToRun(s.id, t)) $("#msg").value = ""; return; }
+    const r = await api("/api/message", {text: t}); $("#msg").value = "";
+    toast(r.duplicate ? "Already sent. Not saved twice." : r.read_next ? "Saved. The agents read it on their next turn. Resume the run if it is stopped." : "Sent. The agents answer it first.");
+    select("chat"); };
+  $("#msg").oninput = e => { e.target.style.height = "auto"; e.target.style.height = Math.min(e.target.scrollHeight, 220) + "px"; };
+  $("#msg").onkeydown = ev => { if (ev.key === "Enter" && !ev.shiftKey) { ev.preventDefault(); f.requestSubmit(); } };
+}
+function refresh() {
+  if (view === "start" || view === "home" || view === "page") return;
+  const s = S();
+  const fresh=runQuestions(s).filter(q=>q.open && !surfacedQuestions.has(q.runId+':'+q.id));
+  if (!past && fresh.length && !isTextEditingTarget(document.activeElement)) { for(const q of fresh) surfacedQuestions.add(q.runId+':'+q.id); setRunPane('chat'); }
+  renderHeader(s); renderStatus(s); renderTimeline(s); renderRunMap(s); renderInspector(s); renderAlerts(s); renderBadges(live?.personal);
+  renderSummaryDocument(s);
+  const count=runQuestions(s).filter(q=>q.open).length; $('#chat-tab').textContent=count ? `Chat (${count})` : 'Chat';
+  if(!past && fresh.length && !isTextEditingTarget(document.activeElement)) queueMicrotask(()=>[...document.querySelectorAll('.question-card[data-open="true"]')].find(card=>card.dataset.questionKey===s.id+':'+fresh[0].id)?.scrollIntoView({block:'nearest'}));
+  applyRunPane();
+  renderComposerState(s);
+}
+
+/* ---------------- waiting alerts, feedback, changes, security ---------------- */
+const waitingNoticeSources = new Set();
+function renderAlerts(s) {
+  const current = new Set();
+  for (const x of (past ? [] : (s?.waiting ?? []))) {
+    const source = `waiting:${s.id}:${x.agent}:${x.kind}`;
+    current.add(source);
+    const perform = async act => {
+      if (act === 'approve' || act === 'deny') await api('/api/answer', {agent:x.agent, approve:act === 'approve'});
+      else if (act === 'restart') await api('/api/restart', {agent:x.agent});
+      else if (act === 'nudge') await api('/api/control', {action:'nudge'});
+      else { sel = 'a:' + x.agent; insTab = 'pane'; lastInsKey = ''; refresh(); }
+    };
+    const message = x.kind === 'stall' ? `${labelOf(x.agent)} needs a progress check.` :
+      `${labelOf(x.agent)} is asking: ${x.why || ''} ${x.question || ''} ${(x.findings || []).map(f => f.reason).join(' ')}`;
+    notices.publish(source, {message, identity:JSON.stringify([x.kind,x.why,x.question,x.findings]),
+      actions:(x.kind === 'stall' ? ['nudge','restart','watch'] : ['approve','deny','watch']).map(act =>
+        ({label:act[0].toUpperCase()+act.slice(1), run:() => perform(act)}))});
+    waitingNoticeSources.add(source);
+  }
+  for (const source of waitingNoticeSources) if (!current.has(source)) { notices.clear(source); waitingNoticeSources.delete(source); }
+}
+function applyPrefs(p) {
+  const root = document.documentElement, ui = p?.ui ?? {};
+  root.dataset.density = ui.density ?? "comfortable";
+  if (ui.theme && ui.theme !== "system") root.dataset.theme = ui.theme; else delete root.dataset.theme;
+  if (!applyPrefs.done && p) { applyPrefs.done = true; if (ui.sidebar === "closed") $("#app").classList.add("no-side"); }
+}
+let shownChanges = false;
+function renderBadges(p) {
+  if (!p) return;
+  applyPrefs(p);
+  const ready = (p.proposals ?? []).filter(x => x.status === "ready").length, n = (p.new_changes?.length ?? 0) + ready;
+  $("#btnChanges").hidden = false; $("#nChanges").textContent = p.applying ? "…" : n || "";
+  $("#nSecurity").hidden = !p.security_count; $("#nSecurity").textContent = p.security_count;
+  if (p.new_changes?.length && !shownChanges && !$("#sheet").open) { shownChanges = true; openSheet("changes"); }
+}
+function pathLabel(l) { return l.kind === "rule" ? "House rule: " + l.value : l.kind + ": " + l.path + (l.kind === "code" ? "" : " = " + JSON.stringify(l.value)); }
+async function defaultsHtml() {
+  const g = (await api("/api/config")).config;
+  const opt = (vals, cur) => vals.map(([v, l]) => `<option value="${v}" ${v === cur ? "selected" : ""}>${l}</option>`).join("");
+  return `<p class="hint">General defaults apply to new runs. The active task time limit applies to current and new runs.</p>
+    <label class="field"><span>Maximum active runs</span><select id="gRunLimit">${opt([[1,'One run'],[2,'Two runs'],[3,'Three runs'],[4,'Four runs in separate projects']],g.max_active_runs ?? 4)}</select><small>Each run uses its own workers. Reducing the limit leaves existing runs running and blocks new starts.</small></label>
+    <label class="field"><span>Folder where projects are saved. Applies to new runs.</span><input type="text" id="gRoot" value="${esc(g.root)}"></label>
+    <label class="field"><span>First screen when no run is working</span><select id="gStart">${opt([["home", "Home"], ["new", "New task"], ["features", "Features"], ...(await DuoComponents.pages()).map(c => [c.key, c.title + " (" + c.feature + ")"])], g.start_page || "home")}</select></label>
+    <label class="field"><span>When should Duo ask you?</span><select id="gDecisionMode">${opt([['big','Important choices'],['always','Every ranked choice'],['auto','Let agents choose']],g.decision_mode || 'big')}</select></label>
+    <label class="field"><span>Warn when an agent's screen is quiet for this many minutes</span><input type="number" id="gStall" min="1" max="60" value="${g.stall_minutes}"></label>
+    <label class="field"><span>Detailed completion summary writer</span><select id="gCompletionProvider">${opt([['auto','Sonnet, with Sol fallback'],['claude','Sonnet'],['codex','Sol']],g.completion_summary_provider || 'auto')}</select>
+      <small>Runs after the task is marked done. Produces a detailed handoff, user action items, and a next-run prompt.</small></label>
+    <label class="field"><input type="checkbox" id="gActiveLimit" ${g.active_time_limit_enabled ? "checked" : ""}> <span>Use an active task time limit (optional, off by default)</span></label>
+    <label class="field"><input type="checkbox" id="gUnfinishedTimeouts" ${g.unfinished_timeouts_enabled ? "checked" : ""}> <span>Use elapsed-time cutoffs for unfinished work (off by default)</span></label>
+    <label class="field"><span>Active task time limit in hours</span><input type="number" id="gActiveHours" min="0.01" max="8760" step="any" value="${g.active_time_limit_hours ?? 6}">
+      <small>This setting also applies to current runs. Pauses, user decisions, and time with Duo closed do not count. Parallel agents count once. Existing tasks start a new counter after this update.</small></label>
+    <label class="field"><span>Docker sandbox</span><select id="gSandbox">${opt([["off", "Off"], ["on", "On for this runtime"]], g.sandbox)}</select></label>
+    <label class="field"><input type="checkbox" id="gNotify" ${g.notifications ? "checked" : ""}> <span>Notify me when Duo needs me</span></label>
+    <div style="display:flex;gap:8px;justify-content:flex-end"><button class="btn primary" id="gSave">Save defaults</button></div>`;
+}
+
+function wireDefaults() {
+  const toggleActiveHours = () => { $("#gActiveHours").disabled = !$("#gActiveLimit").checked; };
+  $("#gActiveLimit").onchange = toggleActiveHours; toggleActiveHours();
+  $("#gSave").onclick = async () => {
+    try {
+      await api("/api/config", {stall_minutes: +$("#gStall").value, sandbox: $("#gSandbox").value,
+        max_active_runs: +$('#gRunLimit').value,
+        unfinished_timeouts_enabled: $('#gUnfinishedTimeouts').checked,
+        completion_summary_provider: $('#gCompletionProvider').value,
+        decision_mode: $('#gDecisionMode').value,
+        active_time_limit_enabled: $("#gActiveLimit").checked,
+        ...($("#gActiveLimit").checked ? {active_time_limit_hours: +$("#gActiveHours").value} : {}),
+        notifications: $("#gNotify").checked, root: $("#gRoot").value, start_page: $("#gStart").value});
+      toast("Settings saved. The active task time limit also applies to current runs.");
+    } catch (e) { /* api() already showed the reason */ }
+  };
+}
+
+async function openSheet(kind) {
+  const sh = $("#sheet"), p = live?.personal ?? {};
+  const close = '<button class="icon-btn" id="shClose" aria-label="Close">✕</button>';
+  if (kind === "feedback") {
+    const s = S(), ctx = {screen: sel ? (sel.startsWith("e:") ? "turn " + sel.slice(2) : "agent " + sel.slice(2)) : "the " + (s ? "run" : "start screen"),
+      run: s?.id ?? null, cycle: s?.cycle ?? null, phase: s?.phase ?? null};
+    let chip = true;
+    const vers = await api("/api/versions").catch(() => ({versions: [], number: null, next: {}, core: {}, disabled: {}, core_requests: []}));
+    const stateWord = {editing: "Editing a copy…", repairing: "Repairing…", ready: "Ready. Tests passed.", failed: "Failed. Tests still fail.",
+      stuck: "Stopped. Repairs are not making progress.", blocked: "Blocked.", no_change: "No change made.", rejected: "Rejected.",
+      waiting_for_core: "Waiting for a core change.", rolled_up: "Rolled up.", retried: "Sent again after a core update.",
+      reviewing: "A second provider is reviewing it…"};
+    const reqs = Object.fromEntries((vers.core_requests || []).map(r => [r.version_id, r]));
+    const verRow = v => {
+      const status = v.status ? (stateWord[v.status] || v.status) : "";
+      const repairable = v.status === "failed" || v.status === "stuck";
+      const trying = vers.trying && vers.trying.id === v.id;
+      const actions = v.status === "ready" ? (trying
+          ? `<span class="badge auto">In use now</span><button class="btn" data-stoptry="1">Stop using</button><button class="btn primary" data-rollup="${esc(v.id)}">Roll up</button>`
+          : `<button class="btn primary" data-try="${esc(v.id)}">Use this version</button><button class="btn" data-rollup="${esc(v.id)}">Roll up</button><button class="btn" data-reject="${esc(v.id)}">Reject</button>`)
+        : repairable ? `<button class="btn primary" data-repair="${esc(v.id)}">Repair</button><button class="btn" data-reject="${esc(v.id)}">Reject</button>`
+        : v.status === "waiting_for_core" && reqs[v.id] ? `<button class="btn" data-copyreq="${esc(v.id)}">Copy core request</button>` : "";
+      const auto = v.auto_fix ? `<span class="badge auto" title="Duo made this fix after a core update">Auto fix after Duo update${v.feature ? ": " + esc(v.feature) : ""}</span>` : "";
+      const made = v.base ? `<span class="hint">Made from ${esc(v.base)}${v.rolled_into ? ". Rolled up as " + esc(v.rolled_into) : ""}</span>` : "";
+      const where = (v.where || []).length ? `<span class="hint"><b>Where to see it:</b> ${esc(v.where.join("; "))}</span>` : "";
+      const rv = v.review ? `<span class="hint"><b>Review (second provider):</b> ${esc({approved: "approved", changes: "asked for changes", skipped: "skipped"}[v.review.result] || v.review.result)}${v.review.notes ? ". " + esc(v.review.notes.slice(0, 300)) : ""}</span>` : "";
+      const pics = (v.shots || []).map((_, i) => `<a href="/api/versions/shot?id=${encodeURIComponent(v.id)}&n=${i}" target="_blank"><img class="vshot" alt="Screenshot ${i + 1} of version ${esc(v.number)}" src="/api/versions/shot?id=${encodeURIComponent(v.id)}&n=${i}"></a>`).join("");
+      const shotHtml = pics ? `<div class="vshots">${pics}</div>` : (v.shots_note ? `<span class="hint">${esc(v.shots_note)}</span>` : "");
+      const diff = v.diff ? `<details><summary class="hint">Show change</summary><pre class="hint" style="white-space:pre-wrap">${esc(v.detail || "")}</pre></details>` : (v.detail ? `<p class="hint">${esc(v.detail)}</p>` : "");
+      return `<div class="item${v.auto_fix ? " autofix" : ""}"><div class="top"><span><b>${esc(v.number || v.id)}</b> ${esc(v.kind || "")}${status ? " — " + esc(status) : ""} ${auto}${v.feedback ? "<br>" + esc(v.feedback.slice(0, 160)) : ""}<br>${made}</span>${actions}</div>${where}${rv}${shotHtml}${diff}</div>`;
+    };
+    const verHtml = vers.versions.length ? `<h4 class="hint" style="margin:6px 0 0">Version copies</h4>` + vers.versions.map(verRow).join("") : "";
+    const openReqs = vers.versions.filter(v => v.status === "waiting_for_core" && reqs[v.id]);
+    const reqHtml = openReqs.length ? `<div class="item off"><b>Open core requests: ${openReqs.length}</b>${openReqs.map(v => `<span class="hint">${esc(v.number)}: ${esc((reqs[v.id].missing || "").slice(0, 160))} <button class="btn" data-copyreq="${esc(v.id)}">Copy</button></span>`).join("")}<span class="hint">Send them to the Duo maintainers. Duo tries again after a core update.</span></div>` : "";
+    const offHtml = Object.entries(vers.disabled || {}).map(([n, d]) => `<div class="item off"><b>Feature ${esc(n)} is off.</b> <span class="hint">${esc(d.reason || "")}</span></div>`).join("");
+    const core = vers.core || {};
+    const coreLine = `<p class="hint">Core ${esc(core.version || "not installed")}${vers.sealed === false ? ' · <b class="warn">Core files were changed by hand. Run duo update to repair them.</b>' : ""}${core.previous ? ` · Earlier core ${esc(core.previous)} <button class="btn" id="coreBack">Go back to core ${esc(core.previous)}</button>` : ""}</p>`;
+    const backBtn = vers.can_go_back ? `<button class="btn" id="userBack">Go back to ${esc(vers.rolled[vers.rolled.length - 1].from)}</button>` : "";
+    const list = (p.feedback ?? []).map(f => `<div class="item"><div class="top"><span>${esc(f.reaction ? (f.reaction === "right" ? "Right call. " : "Wrong call. ") : "")}${esc(f.text)}</span><span class="st ${esc(f.status)}">${esc(f.status)}</span></div>${f.result ? `<span class="hint">${esc(f.result)}</span>` : ""}</div>`).join("")
+      || '<p class="hint">Tell Duo what to add or change. Send makes a copy of your features, and Duo edits the copy in the background. Duo\'s core does not change.</p>';
+    const runNote = s && ACTIVE.includes(s.status) ? '<p class="hint">Feedback changes Duo, not this run. To tell this run something, write in the message box under the timeline.</p>' : "";
+    sh.innerHTML = `<div class="sh-head"><h3>Feedback</h3>${close}</div><div class="sh-body">
+      <p class="duo-now">Your Duo: <b>${esc(vers.number || "unknown")}</b> ${backBtn}</p>${vers.trying ? `<p class="duo-now trial">You are using version <b>${esc(vers.trying.number)}</b> to try it. Your Duo stays ${esc(vers.number)} until you press Roll up. <button class="btn" data-stoptry="1">Stop using</button></p>` : ""}${coreLine}${reqHtml}${offHtml}
+      ${runNote}<label class="sr" for="fbText">Feedback</label><textarea id="fbText" placeholder="What should Duo do differently? For example: add an Export button on the home screen."></textarea>
+      <fieldset class="kind"><legend class="hint">Update type</legend>
+        <label class="chip"><input type="radio" name="fbKind" value="major"> Major, ${esc(vers.next?.major || "")}. A new feature or a big change.</label>
+        <label class="chip"><input type="radio" name="fbKind" value="minor" checked> Minor, ${esc(vers.next?.minor || "")}. A small change or a fix.</label></fieldset>
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><span class="chip" id="fbChip">About: ${esc(ctx.screen)}${s ? " · " + esc(s.title || s.id) : ""}<button id="fbX" aria-label="Remove context">✕</button></span>
+        <span style="flex:1"></span><button class="btn primary" id="fbSend">Send</button></div>
+      <p class="hint">Use this version loads a ready copy so you can try it. Roll up makes it your Duo, with the next main number (for example ${esc(vers.number ? (parseInt(vers.number) + 1) + ".0.0" : "")}).</p>
+      ${verHtml}
+      <h4 class="hint" style="margin:6px 0 0">Your feedback</h4>${list}</div>`;
+    sh.showModal(); $("#fbText").focus();
+    $("#fbX").onclick = () => { chip = false; $("#fbChip").remove(); };
+    $("#fbSend").onclick = async () => { const text = $("#fbText").value.trim(); if (!text) return toast("Write some feedback first.");
+      const kind = sh.querySelector('input[name="fbKind"]:checked')?.value || "minor";
+      const r = await api("/api/feedback", {text, kind, context: chip ? ctx : {}}); toast(r.reference ? "Saved as " + r.reference.number + ". Duo is editing a copy in the background." : "Saved."); openSheet("feedback"); };
+    sh.querySelectorAll("[data-try]").forEach(b => b.onclick = async () => { const r = await api("/api/versions/use", {id: b.dataset.try}); toast("Using version " + r.trying + ". The page reloads. Roll up when it is good."); setTimeout(() => location.reload(), 900); });
+    sh.querySelectorAll("[data-stoptry]").forEach(b => b.onclick = async () => { await api("/api/versions/stop", {}); toast("Back to your Duo. The page reloads."); setTimeout(() => location.reload(), 900); });
+    sh.querySelectorAll("[data-rollup]").forEach(b => b.onclick = async () => {
+      const v = vers.versions.find(x => x.id === b.dataset.rollup);
+      if (v && !v.tried && !(await confirmBox("You have not tried version " + v.number + " yet. Press Use this version first to check it. Roll up anyway?", "Roll up"))) return;
+      const r = await api("/api/versions/rollup", {id: b.dataset.rollup}); toast("Your Duo is now " + r.number + ". The page reloads."); setTimeout(() => location.reload(), 900); });
+    sh.querySelectorAll("[data-reject]").forEach(b => b.onclick = async () => { await api("/api/versions/reject", {id: b.dataset.reject}); toast("Rejected."); openSheet("feedback"); });
+    sh.querySelectorAll("[data-repair]").forEach(b => b.onclick = async () => { await api("/api/versions/repair", {id: b.dataset.repair}); toast("Repairing. Up to five tries."); openSheet("feedback"); });
+    sh.querySelectorAll("[data-copyreq]").forEach(b => b.onclick = async () => { const r = reqs[b.dataset.copyreq];
+      const text = "Duo core request\nMissing: " + (r.missing || "") + "\nWhy: " + (r.why || "") + "\nFeature: " + (r.feature || "") + "\nCore: " + (r.core || "") + "\nRequest: " + (r.feedback || "");
+      try { await navigator.clipboard.writeText(text); toast("Copied. Send it to the Duo maintainers."); } catch (e) { toast("Copy did not work. The request is in ~/Duo/core-requests/."); } });
+    const ub = $("#userBack"); if (ub) ub.onclick = async () => { if (!(await confirmBox("Go back to your earlier Duo? Your current features are kept in ~/Duo/user-history/.", "Go back"))) return;
+      const r = await api("/api/versions/goback", {}); toast("Your Duo is now " + r.number + ". The page reloads."); setTimeout(() => location.reload(), 900); };
+    const cb = $("#coreBack"); if (cb) cb.onclick = async () => { if (!(await confirmBox("Go back to the earlier core? Duo restarts.", "Go back"))) return;
+      await api("/api/core/goback", {}); toast("Restart Duo to run the earlier core."); sh.close(); checkCode(); };
+  } else if (kind === "changes") {
+    const act = (p.layers ?? []).filter(l => l.active);
+    const row = l => `<div class="item"><div class="top"><span>${esc(pathLabel(l))}</span><button class="btn" data-undo="${esc(l.id)}">Undo</button></div>${l.why ? `<span class="hint">${esc(l.why)}</span>` : ""}</div>`;
+    const PST = {queued: "waiting for a free turn", prepared: "starting", running: "agents are working on it", testing: "running the tests",
+      ready: "ready for your review", failed: "did not pass", blocked: "blocked by security", approved: "applied", rolled_back: "rolled back", declined: "declined"};
+    const props = (p.proposals ?? []).filter(x => x.status !== "declined").map(x => {
+      const b = [];
+      if (x.status === "ready") b.push(["approve", "Approve", "primary"]);
+      if (["ready", "failed", "blocked"].includes(x.status) && x.worktree) b.push(["diff", "Review changes"]);
+      if (["failed", "blocked"].includes(x.status)) b.push(["retry", "Check again"]);
+      if (["queued", "ready", "failed", "blocked"].includes(x.status)) b.push(["decline", "Decline"]);
+      if (x.status === "approved") b.push(["rollback", "Roll back"]);
+      const f = (x.findings ?? []).map(y => `<li>${esc(y.reason)}${y.detail ? " (" + esc(y.detail) + ")" : ""}</li>`).join("");
+      return `<div class="item" data-pid="${esc(x.id)}"><div class="top"><b>Change Duo: ${esc(x.title)}</b><span class="st ${/ready|approved/.test(x.status) ? "applied" : /blocked|failed/.test(x.status) ? "denied" : ""}">${esc(PST[x.status] ?? x.status)}</span></div>
+        <span class="hint">${esc(x.request)}</span>
+        ${x.files?.length ? `<span class="hint">${x.files.length} file${x.files.length > 1 ? "s" : ""}, +${x.added} −${x.removed}: ${x.files.map(esc).join(", ")}</span>` : ""}
+        ${f ? `<ul class="issues">${f}</ul>` : ""}${x.result ? `<pre class="hint" style="white-space:pre-wrap;margin:0">${esc(x.result)}</pre>` : ""}${x.tag ? `<span class="hint">Version ${esc(x.tag)}</span>` : ""}
+        ${b.length ? `<div class="row" style="display:flex;gap:6px;flex-wrap:wrap">${b.map(([a, t, c]) => `<button class="btn ${c ?? ""}" data-pa="${a}" data-pid="${esc(x.id)}">${t}</button>`).join("")}</div>` : ""}
+        <pre class="diffview" hidden style="max-height:260px;overflow:auto;font:12px/1.4 var(--code);background:var(--panel);padding:8px;border-radius:6px"></pre></div>`;
+    }).join("");
+    sh.innerHTML = `<div class="sh-head"><h3>What changed</h3>${close}</div><div class="sh-body">
+      ${p.new_changes?.length ? `<h4 class="hint" style="margin:0">New since you opened Duo</h4>${p.new_changes.filter(l => l.kind !== "code").map(row).join("")}` : ""}
+      <h4 class="hint" style="margin:0">Active changes</h4>${act.length ? act.map(row).join("") : '<p class="hint">Nothing changed yet.</p>'}${props ? `<h4 class="hint" style="margin:0">Code proposals</h4>${props}` : ""}</div>`;
+    sh.showModal();
+    sh.querySelectorAll("[data-pa]").forEach(b => b.onclick = async () => {
+      const id = b.dataset.pid, act = b.dataset.pa;
+      if (act === "diff") { const pre = b.closest(".item").querySelector(".diffview"); pre.hidden = !pre.hidden;
+        if (!pre.hidden) pre.textContent = (await api("/api/proposal?id=" + encodeURIComponent(id))).diff || "No changes to show."; return; }
+      if (act === "approve" && !(await confirmBox("Apply this change to Duo? It loads on next launch, and you can roll it back.", "Apply"))) return;
+      if (act === "decline" && !(await confirmBox("Decline this change and discard its work?", "Decline"))) return;
+      await api("/api/proposal", {id, action: act});
+      toast({approve: "Applied. It loads on next launch.", decline: "Declined.", rollback: "Rolled back. It takes effect on next launch.", retry: "Checking again."}[act]);
+      setTimeout(() => openSheet("changes"), 300); });
+    sh.querySelectorAll("[data-undo]").forEach(b => b.onclick = async () => { await api("/api/undo", {id: b.dataset.undo}); toast("Undone."); setTimeout(() => openSheet("changes"), 150); });
+  } else if (kind === "approvals") {
+    const s = S(), ac = s?.approval_counts || {};
+    const rows = (s?.entries || []).filter(e => e.kind === "approval" || (e.kind === "security" && e.category)).slice(-60).reverse();
+    sh.innerHTML = `<div class="sh-head"><h3>Approvals this run</h3>${close}</div><div class="sh-body">
+      <p class="hint">Permissions approved ${ac.approved || 0} (${ac.auto || 0} on its own), denied ${ac.denied || 0}, ${ac.waiting || 0} waiting. Native CLIs handle current tool permission requests. Older Duo decisions remain in this history.</p>
+      ${rows.length ? rows.map(e => `<div class="item"><div class="top"><b>${esc(e.summary)}</b><span class="hint">${esc(e.time_hm || "")}</span></div>${e.why ? `<span class="hint">${esc(e.why)}</span>` : ""}<button class="btn" data-sel="e:${e.n}" style="margin-top:4px">Open</button></div>`).join("") : '<p class="hint">No approvals yet.</p>'}</div>`;
+    sh.showModal();
+    sh.querySelectorAll("[data-sel]").forEach(b => b.onclick = () => { sh.close(); select(b.dataset.sel); });
+  } else if (kind === "defaults") {
+    sh.innerHTML = `<div class="sh-head"><h3>Defaults for new runs</h3>${close}</div><div class="sh-body">${await defaultsHtml()}<div class="slot-settings" id="slotSettings"></div></div>`;
+    sh.showModal(); wireDefaults();
+    window.DuoComponents?.renderSlot($("#slotSettings"), "settings", {});
+  } else if (kind === "settings") {
+    const s = S(); if (!s) return;
+    const opt = (vals, cur) => vals.map(([v, l]) => `<option value="${v}" ${v === cur ? "selected" : ""}>${l}</option>`).join("");
+    const agentOpts = a => s.agents.map(x => `<option value="${x}" ${x === a ? "selected" : ""}>${esc(labelOf(x))}</option>`).join("");
+    sh.innerHTML = `<div class="sh-head"><h3>Run settings</h3>${close}</div><div class="sh-body">
+      <p class="hint">Changes apply from the next turn. Native CLIs handle tool permissions.</p>
+      ${['staged', 'roles'].includes(s.workflow) ? '<p class="hint">' + (s.workflow === 'roles' ? 'Large planner → medium plan reviewer → small coder → separate small code reviewer.' : 'Independent assessments, then build and review. No fixed discussion rounds.') + '</p>' : `<label class="field"><span>Lead–Challenger exchanges (0 disables)</span><input type="number" id="stPlanRounds" min="0" max="10" value="${s.plan_discussion?.rounds ?? s.plan_challenge_rounds ?? 3}"></label>`}
+      <label class="field"><span>Build rounds</span><input type="number" id="stRounds" min="1" max="100" value="${s.max_rounds}"></label>
+      <label class="field"><span>When should Duo ask you?</span><select id="stDecisionMode">${opt([['big','Important choices'],['always','Every ranked choice'],['auto','Let agents choose']],s.mode)}</select></label>
+      <label class="field"><span>Docker sandbox</span><select id="stBox">${opt([["off", "Off"], ["on", "On for this runtime"]], s.sandbox_on ? "on" : "off")}</select></label>
+      <div class="field"><span>Roles</span><div style="display:grid;grid-template-columns:auto 1fr;gap:6px 10px;align-items:center">
+        <span class="hint">Builder</span><select id="stBuilder" ${s.role_models?.length ? "disabled" : ""}>${agentOpts(s.roles?.builder)}</select>
+        <span class="hint">Critic</span><select id="stCritic" ${s.role_models?.length ? "disabled" : ""}>${agentOpts(s.roles?.critic)}</select></div></div>
+      <div style="display:flex;gap:8px;justify-content:flex-end"><button class="btn primary" id="stSave">Save</button></div></div>`;
+    sh.showModal();
+    $("#stSave").onclick = async () => {
+      const body = {mode: $('#stDecisionMode').value, max_rounds: +$("#stRounds").value, sandbox: $("#stBox").value,
+        roles: {builder: $("#stBuilder").value, critic: $("#stCritic").value}};
+      if ($("#stPlanRounds")) body.plan_challenge_rounds = +$("#stPlanRounds").value;
+      try { const r = await api("/api/settings", body); toast(r.relaunched ? "Saved. Restarting the agents." : "Saved. Applies from the next turn."); sh.close(); }
+      catch (e) { toast(e.message || "Could not save."); } };
+  } else {
+    const log = (await api("/api/security")).log;
+    sh.innerHTML = `<div class="sh-head"><h3>Security list</h3>${close}</div><div class="sh-body">
+      <p class="hint">Claude and Codex use their native permission settings. Duo records task state and diagnostics without adding tool restrictions or approval gates.</p>
+      ${log.length ? log.map(x => `<div class="item"><div class="top"><b>${esc(x.reason)}</b><span class="st ${/denied|blocked/.test(x.action) ? "denied" : ""}">${esc(x.action)}</span></div>
+        <span class="hint">${esc(x.source)}${x.agent ? " · " + esc(labelOf(x.agent)) : ""} · ${esc(x.time)}</span><code style="font:12px var(--code);white-space:pre-wrap">${esc(x.detail)}</code></div>`).join("") : '<p class="hint">Nothing denied or flagged yet.</p>'}</div>`;
+    sh.showModal();
+  }
+  $("#shClose").onclick = () => sh.close();
+}
+$("#sheet").addEventListener("close", () => { if (live?.personal?.new_changes?.length) api("/api/changes/seen", {}); });
+$("#toggleSessions").onclick = () => {
+  const hidden = $("#app").classList.toggle("no-side");
+  $("#toggleSessions").setAttribute("aria-expanded", String(!hidden));
+};
+$("#toggleInspector").onclick = () => {
+  const hidden = $("#app").classList.toggle("hide-details");
+  $("#toggleInspector").setAttribute("aria-expanded", String(!hidden));
+};
+$("#btnFeedback").onclick = () => openSheet("feedback");
+$("#btnChanges").onclick = () => openSheet("changes");
+$("#btnSecurity").onclick = () => openSheet("security");
+async function react(d, r) {
+  await api("/api/feedback", {text: (r === "right" ? "Right call on " : "Wrong call on ") + d.id + ": " + (d.titles?.[d.chosen] ?? d.chosen),
+    reaction: r, context: {decision: d.id, run: S()?.id ?? null, phase: "decide"}});
+  toast(r === "right" ? "Noted: right call." : "Noted: wrong call. Add detail in Feedback if you like.");
+}
+let frame = 0, lastStatus = null;
+/* Runs once at load; connect() below only opens the event stream (it runs again after a lost connection). */
+  async function checkCode() {
+  try { const h = await fetch("/api/health").then(r => r.json());
+    const newer = h.code_now && h.code !== h.code_now, other = h.current && h.running && h.current !== h.running;
+    const fb = h.feedback;
+    if (newer || other) notices.publish('core-update', {
+      message: other ? 'A different Duo version is set. Restart Duo to run it.' : 'Duo has newer code on disk. Restart Duo to load it.',
+      identity: JSON.stringify([h.running, h.current, h.code, h.code_now]), actions: [{label:'Restart', run: restartCore}]});
+    else notices.clear('core-update');
+    if (fb && fb.kind !== 'editing') notices.publish('feature-feedback', {message: fb.text, identity: JSON.stringify([fb.id, fb.version, fb.kind, fb.text])});
+    else notices.clear('feature-feedback');
+  } catch (e) {}
+}
+async function restartCore() {
+  notices.publish('core-restarting', {message:'Restarting Duo to load the new code...'});
+  await fetch("/api/shutdown", {method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify({restart: true})}).catch(() => {});
+  for (let i = 0; i < 60; i++) {
+    await new Promise(r => setTimeout(r, 1000));
+    try { const h = await fetch("/api/health").then(r => r.json()); if (h.code && h.code === h.code_now && h.running === h.current) { saveRunDraft(); location.reload(); return; } } catch (e) {}
+  }
+  notices.publish('core-restarting', {message:'Duo did not come back. Run: python3 bin/duo serve'});
+}
+checkCode(); setInterval(checkCode, 15000);
+async function showVersion() {
+  try { const h = await fetch("/api/health").then(r => r.json());
+    $("#duoVer").textContent = h.number ? "Duo " + h.number + (h.trying ? " (trying " + h.trying + ")" : "") + (h.core ? " · core " + h.core : "") : "Duo";
+    const fb = $("#btnFeedback"); let n = fb && fb.querySelector(".n.req");
+    if (fb && h.core_requests) { if (!n) { n = document.createElement("span"); n.className = "n req"; n.title = "Open core requests"; fb.append(n); } n.textContent = h.core_requests; }
+    else if (n) n.remove(); } catch (e) {}
+}
+showVersion(); setInterval(showVersion, 15000);
+/* ---------------- user feature components (contract 1.2) ----------------
+   Adapter pattern. The server's adapters (engine/components.py) turn each feature component into one
+   standard description: {kind, feature, module, ...}. Here, one adapter per kind puts that description on
+   screen. A new kind of component = one adapter on each side; nothing else in the page changes.
+   A feature module exports default function(el, duo); duo.call(method, path, body) reaches the feature's
+   own routes at /api/f/<feature><path>, duo.navigate(key) opens a page. A module that fails shows a short
+   note and does not break the page. */
+const DuoComponents = window.DuoComponents = (() => {
+  let cache = null;
+  const load = async () => (cache = cache || fetch("/api/features").then(r => r.json()).catch(() => ({components: [], start_page: "home"})));
+  const duoFor = (c, extra) => Object.assign({feature: c.feature, toast, navigate: k => go(k),
+    call: async (method, path, body) => { const r = await fetch("/api/f/" + c.feature + path, method === "POST"
+      ? {method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify(body || {})} : {});
+      const j = await r.json().catch(() => ({})); if (!r.ok) throw new Error(j.error || String(r.status)); return j; }}, extra || {});
+  async function mount(el, c, extra) {
+    try { const mod = await import(c.module); await mod.default(el, duoFor(c, extra)); }
+    catch (e) { el.textContent = "The feature " + c.feature + " could not show this: " + e.message; el.classList.add("hint"); }
+  }
+  const adapters = {
+    // A panel inside a core slot.
+    panel: {
+      async place(c, root, extra) { const box = document.createElement("div"); box.className = "slot-panel"; box.dataset.feature = c.feature; root.append(box); await mount(box, c, extra); },
+    },
+    // A full page of the feature's own: a side bar button and the main view.
+    page: {
+      nav(c, navRoot) {
+        if (c.nav !== "side") return;
+        const b = document.createElement("button"); b.className = "new fnav"; b.dataset.page = c.key; b.textContent = c.title;
+        b.onclick = () => go(c.key); navRoot.append(b);
+      },
+      async open(c) {
+        $("#app").classList.add("page-view");
+        view = "page"; past = null; sel = null;
+        $("#main").innerHTML = `<div class="home"><div class="home-inner"><div class="fpage" id="fpage"></div></div></div>`;
+        document.querySelectorAll(".fnav").forEach(x => x.classList.toggle("on", x.dataset.page === c.key));
+        await mount($("#fpage"), c, {page: c.key});
+      },
+    },
+  };
+  async function renderSlot(root, slot, extra) {
+    if (!root) return;
+    root.replaceChildren();
+    for (const c of (await load()).components || []) if (c.kind === "panel" && c.slot === slot) await adapters.panel.place(c, root, extra);
+  }
+  async function renderNav() {
+    const nav = $("#featureNav"); if (!nav) return;
+    nav.replaceChildren();
+    for (const c of (await load()).components || []) { const a = adapters[c.kind]; if (a && a.nav) a.nav(c, nav); else if (!a) console.info("Duo: no page adapter for component kind", c.kind); }
+  }
+  async function openPage(key) {
+    const c = ((await load()).components || []).find(x => x.kind === "page" && x.key === key);
+    if (!c) { toast("That page is not available. Its feature may be off."); return showHome(); }
+    await adapters.page.open(c);
+  }
+  return {renderSlot, renderNav, openPage, adapters,
+    startPage: async () => (await load()).start_page || "home",
+    pages: async () => ((await load()).components || []).filter(c => c.kind === "page"),
+    reset: () => { cache = null; }};
+})();
+window.DuoSlots = {render: DuoComponents.renderSlot};          // contract 1.0 name
+
+/* Addresses: #/home, #/new, #/f/<feature>/<page>. */
+function hashOf(key) { if (["home", "new", "features"].includes(key)) return "#/" + key; const m = /^f:([^:]+):(.+)$/.exec(key || ""); return m ? "#/f/" + m[1] + "/" + m[2] : "#/home"; }
+function route() {
+  const h = location.hash;
+  if (h === "#/new") return showStart();
+  if (h === "#/features") return showFeatures();
+  const m = /^#\/f\/([^/]+)\/(.+)$/.exec(h);
+  if (m) return DuoComponents.openPage("f:" + m[1] + ":" + m[2]);
+  return showHome();
+}
+function go(key) { const h = hashOf(key); if (location.hash === h) route(); else location.hash = h; }
+window.addEventListener("hashchange", () => { if (location.hash) route(); });
+DuoComponents.renderNav();
+DuoComponents.renderSlot($("#slotHeader"), "header", {});
+let lastLiveUpdate=0, pollingState=false;
+function receiveLiveState(data) {
+    lastLiveUpdate=Date.now();live=data;
+    if (past) {
+      const savedId = past.id;
+      api('/api/session?' + new URLSearchParams({id:savedId})).then(saved => {
+        if (past?.id === savedId) { past = saved; refresh(); }
+      }).catch(() => {});
+    }
+    // Open on Home when no run is working; a working run opens on its timeline as before.
+    if (!window.__duoOpened) { window.__duoOpened = true;
+      if (location.hash) route();
+      else if (!(live.session && ACTIVE.includes(live.session.status))) DuoComponents.startPage().then(go); }
+  const st = JSON.stringify([live.session?.id, live.session?.status, live.runs?.map(r=>[r.id,r.status,r.paused])]);
+    if (st !== lastStatus) { lastStatus = st; loadSessions(); }
+    if (!frame) {frame=1;queueMicrotask(() => { frame = 0; refresh(); });}
+}
+async function pollLiveState() {
+  if(pollingState) return;pollingState=true;
+  try {const response=await fetch('/api/state');if(response.ok)receiveLiveState(await response.json());}
+  catch(error){recordUIError(error);}finally{pollingState=false;}
+}
+function connect() {
+const es = new EventSource("/api/events");
+  es.onmessage = ev => receiveLiveState(JSON.parse(ev.data));
+  es.onerror = () => { es.close(); $("#stext") && ($("#stext").textContent = "Lost the connection to Duo. Reconnecting."); setTimeout(connect, 2000); };
+}
+$("#newBtn").onclick = () => showStart();
+$("#homeBtn").onclick = () => go("home");
+$("#featuresBtn").onclick = () => go("features");
+$("#toggleSide").onclick = () => $("#app").classList.toggle("no-side");
+document.addEventListener("keydown", ev => {
+  if (ev.defaultPrevented || ev.isComposing || ev.ctrlKey || ev.metaKey || ev.altKey || isTextEditingTarget(ev.target) || isTextEditingTarget(document.activeElement)) return;
+  if (ev.key === "f" && !$("#sheet").open) { ev.preventDefault(); openSheet("feedback"); return; }
+  if (ev.key === "Escape" && !$("#sheet").open) select(null);
+  if (ev.key === "n" && view !== "start") { ev.preventDefault(); showStart(); }
+  if (ev.key === "c" && S() && !ACTIVE.includes(S().status) && S().status !== "done") { ev.preventDefault(); continueRun(S().id); }
+  if (ev.key === "/" && $("#msg")) { ev.preventDefault(); $("#msg").focus(); }
+  if (ev.key === "j" || ev.key === "k") {
+    const rows = [...document.querySelectorAll("#timeline [data-sel]")]; if (!rows.length) return;
+    const i = rows.findIndex(r => r.dataset.sel === sel); const nx = rows[Math.max(0, Math.min(rows.length - 1, i + (ev.key === "j" ? 1 : -1)))];
+    select(nx.dataset.sel); nx.focus();
+  }
+});
+bindComposer(); loadSessions();
+// ?snapshot=1: no live event stream, open the address at once (used by Duo's screenshots of version copies).
+if (new URLSearchParams(location.search).has("snapshot")) { window.__duoOpened = true; route(); } else {connect();pollLiveState();setInterval(()=>{if(Date.now()-lastLiveUpdate>10000)pollLiveState();},10000);}
+</script>
+</body>
+</html>

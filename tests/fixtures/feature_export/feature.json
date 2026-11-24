@@ -1,0 +1,2 @@
+{"name": "feature_export", "version": "0.1.0", "contract": ">=1.2",
+ "description": "Example user feature: a home panel that lists runs, and a stage that writes a summary after delivery."}

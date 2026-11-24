@@ -1,0 +1,131 @@
+{
+ "_note": "Edit by hand only. Feedback, auto-approve and Duo's self-changes can never change this file.",
+ "commands": [
+  {
+   "id": "pipe_to_shell",
+   "action": "deny",
+   "reason": "Runs code downloaded from the internet without review.",
+   "pattern": "\\b(curl|wget)\\b[^;&]*\\|\\s*(sudo\\s+)?(sh|bash|zsh|python3?|perl|ruby|node)\\b"
+  },
+  {
+   "id": "privilege",
+   "action": "deny",
+   "reason": "Asks for administrator rights.",
+   "pattern": "(^|[\\s;&|(])(sudo|doas|su)(\\s|$)"
+  },
+  {
+   "id": "credentials",
+   "action": "deny",
+   "reason": "Reads keys, tokens or passwords.",
+   "pattern": "(~|\\$home|/users/[^/\\s]+)/\\.(ssh|aws|gnupg|netrc|kube|docker/config|config/gh)|\\.codex/auth\\.json|\\.claude/\\.credentials|\\bsecurity\\s+(find|dump|export)-"
+  },
+  {
+   "id": "sandbox_override",
+   "action": "deny",
+   "reason": "Turns off an agent's sandbox or approvals.",
+   "pattern": "--dangerously-skip-permissions|dangerouslydisablesandbox|bypasspermissions|danger-full-access|--yolo|sandbox_mode\\s*="
+  },
+  {
+   "id": "chmod_open",
+   "action": "deny",
+   "reason": "Makes files writable by everyone.",
+   "pattern": "\\bchmod\\s+(-r\\s+)?(0?777|a\\+rwx|o\\+w)\\b"
+  },
+  {
+   "id": "publish",
+   "action": "deny",
+   "reason": "Publishes or pushes code outside this Mac.",
+   "pattern": "\\bgit\\s+push\\b|\\b(npm|pnpm|yarn)\\s+publish\\b|\\b(twine|cargo)\\s+(upload|publish)\\b|\\bgh\\s+release\\s+create\\b"
+  },
+  {
+   "id": "persistence",
+   "action": "deny",
+   "reason": "Changes what runs at login or on a schedule.",
+   "pattern": "\\bcrontab\\b|\\blaunchctl\\s+(load|bootstrap|submit)\\b|>>?\\s*(~|\\$home)/\\.(zshrc|bashrc|bash_profile|profile|zprofile)\\b|>\\s*/etc/|\\btee\\s+(-a\\s+)?/etc/"
+  },
+  {
+   "id": "obfuscated",
+   "action": "deny",
+   "reason": "Runs hidden (encoded) commands.",
+   "pattern": "base64\\s+(-d|-D|--decode)[^;&]*\\|\\s*(sh|bash|zsh|python3?)\\b"
+  },
+  {
+   "id": "package_install",
+   "action": "review",
+   "reason": "Installs a package. Check that you want it.",
+   "pattern": "\\b(pip3?|npm|pnpm|yarn|brew|cargo|gem|go)\\s+(install|add|i|get)\\b"
+  },
+  {
+   "id": "download",
+   "action": "review",
+   "reason": "Downloads from the internet.",
+   "pattern": "\\b(curl|wget)\\b"
+  }
+ ],
+ "changes": [
+  {
+   "id": "private_key",
+   "action": "deny",
+   "reason": "A private key is written into the project.",
+   "pattern": "-----BEGIN ((RSA|EC|OPENSSH|DSA|ENCRYPTED) )?PRIVATE KEY-----"
+  },
+  {
+   "id": "cloud_token",
+   "action": "deny",
+   "reason": "A cloud or service token is written into the project.",
+   "pattern": "AKIA[0-9A-Z]{16}|ghp_[A-Za-z0-9]{36}|github_pat_[A-Za-z0-9_]{40,}|xox[baprs]-[A-Za-z0-9-]{10,}|\\bsk-[A-Za-z0-9]{32,}"
+  },
+  {
+   "id": "hardcoded_secret",
+   "action": "deny",
+   "reason": "A password or secret is written into the code.",
+   "pattern": "(?i)\\b(password|passwd|secret|api_?key|token)\\s*[:=]\\s*['\\\"][^'\\\"\\s]{8,}['\\\"]"
+  },
+  {
+   "id": "tls_off",
+   "action": "deny",
+   "reason": "Turns off TLS certificate checks.",
+   "pattern": "verify\\s*=\\s*False|NODE_TLS_REJECT_UNAUTHORIZED\\s*=?\\s*['\\\"]?0|rejectUnauthorized\\s*:\\s*false|InsecureSkipVerify\\s*:\\s*true|_create_unverified_context"
+  },
+  {
+   "id": "eval_input",
+   "action": "deny",
+   "reason": "Runs user input as code.",
+   "pattern": "\\b(eval|exec)\\(\\s*(input\\(|request|req\\.|sys\\.argv|params)"
+  },
+  {
+   "id": "shell_injection",
+   "action": "deny",
+   "reason": "Builds a shell command from text (command injection risk).",
+   "pattern": "shell\\s*=\\s*True.*(f['\\\"]|\\.format\\(|%\\s)|(f['\\\"]|\\.format\\(|%\\s).*shell\\s*=\\s*True"
+  }
+ ],
+ "paths": [
+  {
+   "id": "credential_file",
+   "action": "review",
+   "reason": "Creates or changes a credentials file.",
+   "pattern": "(^|/)(\\.env(\\..*)?|id_rsa|id_ed25519|.*\\.pem|.*\\.p12|credentials(\\.json)?)$"
+  },
+  {
+   "id": "new_dependency",
+   "action": "review",
+   "reason": "Changes the project's dependencies.",
+   "pattern": "(^|/)(package\\.json|requirements[^/]*\\.txt|pyproject\\.toml|Cargo\\.toml|go\\.mod|Gemfile|Podfile)$"
+  }
+ ],
+ "layers": [
+  {
+   "id": "security_setting",
+   "action": "deny",
+   "reason": "Feedback cannot change security settings.",
+   "pattern": "security|sandbox|guard|permission"
+  },
+  {
+   "id": "weaken_security",
+   "action": "deny",
+   "reason": "Feedback cannot tell agents to weaken security.",
+   "pattern": "(?i)\\b(skip|ignore|disable|bypass|turn off|stop)\\b.{0,30}\\b(security|sandbox|approval|checks?|guard|blocking)\\b"
+  }
+ ]
+}

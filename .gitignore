@@ -1,0 +1,40 @@
+# macOS / editors
+.DS_Store
+.idea/
+.vscode/
+*.swp
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# Node / npm
+node_modules/
+*.tgz
+
+# Duo run data and local settings (created while Duo runs)
+.duo/
+config.json
+.superpowers/
+
+# Mac app build output
+app/dist/
+app/src-tauri/target/
+app/src-tauri/gen/
+*.dmg
+
+# Local-only material: design drafts and old validation logs (contain personal paths)
+UI Design/
+Validation Logs/
+
+# Legacy and removed code (classic/staged workflows, V3)
+docs/duo-staged-workflow.md
+docs/2026-11-13-duo-v2-design.md
+docs/superpowers/
+_duo-backup-*
+*.tar.gz
+
+# Personal project log
+contents.md

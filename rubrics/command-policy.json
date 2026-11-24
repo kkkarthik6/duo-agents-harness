@@ -1,0 +1,3511 @@
+{
+  "schema": 1,
+  "sources": [
+    {
+      "id": "codex-rust-v0.106.0",
+      "url": "https://github.com/openai/codex/blob/rust-v0.106.0/codex-rs/shell-command/src/command_safety/is_safe_command.rs",
+      "note": "Pinned public command names and argument safeguards. Apache-2.0. Not the current complete Codex policy."
+    },
+    {
+      "id": "claude-permissions",
+      "url": "https://code.claude.com/docs/en/permissions#read-only-commands",
+      "note": "Documented read-only names. Claude internal full set is not public."
+    },
+    {
+      "id": "duo",
+      "note": "Duo project workflow additions. Argument and scope checks apply to every rule."
+    }
+  ],
+  "deny_executables": [
+    "git",
+    "git-lfs",
+    "git-remote-http",
+    "git-remote-https",
+    "rm",
+    "rmdir",
+    "unlink",
+    "shred",
+    "srm",
+    "trash",
+    "sudo",
+    "doas",
+    "su",
+    "reboot",
+    "shutdown",
+    "halt",
+    "diskutil",
+    "fdisk",
+    "mkfs",
+    "mount",
+    "umount",
+    "crontab",
+    "launchctl",
+    "osascript",
+    "security",
+    "printenv",
+    "ssh",
+    "scp",
+    "sftp",
+    "rsync",
+    "telnet",
+    "nc",
+    "ncat",
+    "netcat",
+    "eval",
+    "dscl",
+    "fdesetup"
+  ],
+  "read_hosts": [
+    "aclanthology.org",
+    "acm.org",
+    "ai.stanford.edu",
+    "anthropic.com",
+    "api.crossref.org",
+    "api.github.com",
+    "api.semanticscholar.org",
+    "archive.ics.uci.edu",
+    "archive.ubuntu.com",
+    "arxiv.org",
+    "biorxiv.org",
+    "bun.sh",
+    "cmake.org",
+    "code.claude.com",
+    "codeload.github.com",
+    "commoncrawl.org",
+    "cran.r-project.org",
+    "crates.io",
+    "ctan.org",
+    "dblp.org",
+    "deb.debian.org",
+    "deno.com",
+    "deno.land",
+    "developer.apple.com",
+    "developer.mozilla.org",
+    "developers.openai.com",
+    "dl-cdn.alpinelinux.org",
+    "dl.acm.org",
+    "dl.fbaipublicfiles.com",
+    "doc.rust-lang.org",
+    "docker.com",
+    "docs.anthropic.com",
+    "docs.brew.sh",
+    "docs.docker.com",
+    "docs.microsoft.com",
+    "docs.openai.com",
+    "docs.python.org",
+    "docs.rs",
+    "doi.org",
+    "dumps.wikimedia.org",
+    "europepmc.org",
+    "export.arxiv.org",
+    "files.pythonhosted.org",
+    "formulae.brew.sh",
+    "ghcr.io",
+    "github.com",
+    "githubusercontent.com",
+    "go.dev",
+    "gradle.org",
+    "grouplens.org",
+    "hf.co",
+    "hub.docker.com",
+    "huggingface.co",
+    "ieee.org",
+    "ieeexplore.ieee.org",
+    "jestjs.io",
+    "jmlr.org",
+    "jsr.io",
+    "julialang.org",
+    "keras.io",
+    "kotlinlang.org",
+    "learn.chatgpt.com",
+    "learn.microsoft.com",
+    "link.springer.com",
+    "maven.apache.org",
+    "mcr.microsoft.com",
+    "medrxiv.org",
+    "mesonbuild.com",
+    "mirrors.ctan.org",
+    "nature.com",
+    "ncbi.nlm.nih.gov",
+    "nextjs.org",
+    "ninja-build.org",
+    "nodejs.org",
+    "npmjs.com",
+    "numpy.org",
+    "objects.githubusercontent.com",
+    "onlinelibrary.wiley.com",
+    "openml.org",
+    "openreview.net",
+    "osf.io",
+    "packages.ubuntu.com",
+    "packaging.python.org",
+    "pandas.pydata.org",
+    "pandoc.org",
+    "pkg.go.dev",
+    "platform.claude.com",
+    "platform.openai.com",
+    "playwright.dev",
+    "pmc.ncbi.nlm.nih.gov",
+    "pnas.org",
+    "pnpm.io",
+    "proceedings.mlr.press",
+    "proceedings.neurips.cc",
+    "proxy.golang.org",
+    "pubmed.ncbi.nlm.nih.gov",
+    "pypi.org",
+    "pythonhosted.org",
+    "pytorch.org",
+    "quarto.org",
+    "quay.io",
+    "r-project.org",
+    "raw.githubusercontent.com",
+    "react.dev",
+    "registry-1.docker.io",
+    "registry.k8s.io",
+    "registry.npmjs.org",
+    "repo.maven.apache.org",
+    "ruby-lang.org",
+    "rubygems.org",
+    "rust-lang.org",
+    "science.org",
+    "sciencedirect.com",
+    "scikit-learn.org",
+    "scipy.org",
+    "security.debian.org",
+    "semanticscholar.org",
+    "snap.stanford.edu",
+    "snapshot.debian.org",
+    "springer.com",
+    "static.crates.io",
+    "statmt.org",
+    "sum.golang.org",
+    "svelte.dev",
+    "swift.org",
+    "tectonic-typesetting.github.io",
+    "tensorflow.org",
+    "testing-library.com",
+    "typescriptlang.org",
+    "typst.app",
+    "vite.dev",
+    "vitest.dev",
+    "vuejs.org",
+    "yarnpkg.com",
+    "zenodo.org"
+  ],
+  "allow": [
+    {
+      "prefix": [
+        "arch"
+      ],
+      "scope": "read",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "b2sum"
+      ],
+      "scope": "read",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "basename"
+      ],
+      "scope": "read",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "cal"
+      ],
+      "scope": "read",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "cat"
+      ],
+      "scope": "read",
+      "source": "codex-rust-v0.106.0"
+    },
+    {
+      "prefix": [
+        "cd"
+      ],
+      "scope": "read",
+      "source": "codex-rust-v0.106.0"
+    },
+    {
+      "prefix": [
+        "cksum"
+      ],
+      "scope": "read",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "cmp"
+      ],
+      "scope": "read",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "column"
+      ],
+      "scope": "read",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "comm"
+      ],
+      "scope": "read",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "cut"
+      ],
+      "scope": "read",
+      "source": "codex-rust-v0.106.0"
+    },
+    {
+      "prefix": [
+        "date"
+      ],
+      "scope": "read",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "diff"
+      ],
+      "scope": "read",
+      "source": "claude-permissions"
+    },
+    {
+      "prefix": [
+        "dirname"
+      ],
+      "scope": "read",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "du"
+      ],
+      "scope": "read",
+      "source": "claude-permissions"
+    },
+    {
+      "prefix": [
+        "echo"
+      ],
+      "scope": "read",
+      "source": "codex-rust-v0.106.0"
+    },
+    {
+      "prefix": [
+        "expand"
+      ],
+      "scope": "read",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "expr"
+      ],
+      "scope": "read",
+      "source": "codex-rust-v0.106.0"
+    },
+    {
+      "prefix": [
+        "false"
+      ],
+      "scope": "read",
+      "source": "codex-rust-v0.106.0"
+    },
+    {
+      "prefix": [
+        "fd"
+      ],
+      "scope": "read",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "file"
+      ],
+      "scope": "read",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "find"
+      ],
+      "scope": "read",
+      "source": "claude-permissions"
+    },
+    {
+      "prefix": [
+        "fmt"
+      ],
+      "scope": "read",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "fold"
+      ],
+      "scope": "read",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "free"
+      ],
+      "scope": "read",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "getconf"
+      ],
+      "scope": "read",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "grep"
+      ],
+      "scope": "read",
+      "source": "codex-rust-v0.106.0"
+    },
+    {
+      "prefix": [
+        "head"
+      ],
+      "scope": "read",
+      "source": "codex-rust-v0.106.0"
+    },
+    {
+      "prefix": [
+        "hexdump"
+      ],
+      "scope": "read",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "hostname"
+      ],
+      "scope": "read",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "id"
+      ],
+      "scope": "read",
+      "source": "codex-rust-v0.106.0"
+    },
+    {
+      "prefix": [
+        "join"
+      ],
+      "scope": "read",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "ls"
+      ],
+      "scope": "read",
+      "source": "codex-rust-v0.106.0"
+    },
+    {
+      "prefix": [
+        "lscpu"
+      ],
+      "scope": "read",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "md5sum"
+      ],
+      "scope": "read",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "nl"
+      ],
+      "scope": "read",
+      "source": "codex-rust-v0.106.0"
+    },
+    {
+      "prefix": [
+        "nproc"
+      ],
+      "scope": "read",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "numfmt"
+      ],
+      "scope": "read",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "od"
+      ],
+      "scope": "read",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "paste"
+      ],
+      "scope": "read",
+      "source": "codex-rust-v0.106.0"
+    },
+    {
+      "prefix": [
+        "pr"
+      ],
+      "scope": "read",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "pwd"
+      ],
+      "scope": "read",
+      "source": "codex-rust-v0.106.0"
+    },
+    {
+      "prefix": [
+        "readlink"
+      ],
+      "scope": "read",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "realpath"
+      ],
+      "scope": "read",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "rev"
+      ],
+      "scope": "read",
+      "source": "codex-rust-v0.106.0"
+    },
+    {
+      "prefix": [
+        "rg"
+      ],
+      "scope": "read",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "seq"
+      ],
+      "scope": "read",
+      "source": "codex-rust-v0.106.0"
+    },
+    {
+      "prefix": [
+        "sha256sum"
+      ],
+      "scope": "read",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "sha512sum"
+      ],
+      "scope": "read",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "shasum"
+      ],
+      "scope": "read",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "splitpath"
+      ],
+      "scope": "read",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "stat"
+      ],
+      "scope": "read",
+      "source": "codex-rust-v0.106.0"
+    },
+    {
+      "prefix": [
+        "strings"
+      ],
+      "scope": "read",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "sw_vers"
+      ],
+      "scope": "read",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "tac"
+      ],
+      "scope": "read",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "tail"
+      ],
+      "scope": "read",
+      "source": "codex-rust-v0.106.0"
+    },
+    {
+      "prefix": [
+        "tr"
+      ],
+      "scope": "read",
+      "source": "codex-rust-v0.106.0"
+    },
+    {
+      "prefix": [
+        "true"
+      ],
+      "scope": "read",
+      "source": "codex-rust-v0.106.0"
+    },
+    {
+      "prefix": [
+        "uname"
+      ],
+      "scope": "read",
+      "source": "codex-rust-v0.106.0"
+    },
+    {
+      "prefix": [
+        "unexpand"
+      ],
+      "scope": "read",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "uniq"
+      ],
+      "scope": "read",
+      "source": "codex-rust-v0.106.0"
+    },
+    {
+      "prefix": [
+        "uptime"
+      ],
+      "scope": "read",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "vm_stat"
+      ],
+      "scope": "read",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "wc"
+      ],
+      "scope": "read",
+      "source": "codex-rust-v0.106.0"
+    },
+    {
+      "prefix": [
+        "which"
+      ],
+      "scope": "read",
+      "source": "codex-rust-v0.106.0"
+    },
+    {
+      "prefix": [
+        "whoami"
+      ],
+      "scope": "read",
+      "source": "codex-rust-v0.106.0"
+    },
+    {
+      "prefix": [
+        "xxd"
+      ],
+      "scope": "read",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "sed"
+      ],
+      "scope": "checked",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "awk"
+      ],
+      "scope": "checked",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "sort"
+      ],
+      "scope": "checked",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "jq"
+      ],
+      "scope": "checked",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "yq"
+      ],
+      "scope": "checked",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "base64"
+      ],
+      "scope": "checked",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "gzip"
+      ],
+      "scope": "checked",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "bzip2"
+      ],
+      "scope": "checked",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "xz"
+      ],
+      "scope": "checked",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "zstd"
+      ],
+      "scope": "checked",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "tar"
+      ],
+      "scope": "checked",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "unzip"
+      ],
+      "scope": "checked",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "zipinfo"
+      ],
+      "scope": "checked",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "pdfinfo"
+      ],
+      "scope": "checked",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "pdftotext"
+      ],
+      "scope": "checked",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "pdftoppm"
+      ],
+      "scope": "checked",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "mutool"
+      ],
+      "scope": "checked",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "ffprobe"
+      ],
+      "scope": "checked",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "identify"
+      ],
+      "scope": "checked",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "docker",
+        "version"
+      ],
+      "scope": "container",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "docker",
+        "info"
+      ],
+      "scope": "container",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "docker",
+        "ps"
+      ],
+      "scope": "container",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "docker",
+        "images"
+      ],
+      "scope": "container",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "docker",
+        "inspect"
+      ],
+      "scope": "container",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "docker",
+        "logs"
+      ],
+      "scope": "container",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "docker",
+        "stats"
+      ],
+      "scope": "container",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "docker",
+        "top"
+      ],
+      "scope": "container",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "docker",
+        "port"
+      ],
+      "scope": "container",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "docker",
+        "history"
+      ],
+      "scope": "container",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "docker",
+        "build"
+      ],
+      "scope": "container",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "docker",
+        "pull"
+      ],
+      "scope": "container",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "docker",
+        "run"
+      ],
+      "scope": "container",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "docker",
+        "exec"
+      ],
+      "scope": "container",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "docker",
+        "create"
+      ],
+      "scope": "container",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "docker",
+        "start"
+      ],
+      "scope": "container",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "docker",
+        "stop"
+      ],
+      "scope": "container",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "docker",
+        "restart"
+      ],
+      "scope": "container",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "docker",
+        "wait"
+      ],
+      "scope": "container",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "docker",
+        "cp"
+      ],
+      "scope": "container",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "docker",
+        "rm"
+      ],
+      "scope": "container",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "docker",
+        "rmi"
+      ],
+      "scope": "container",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "docker",
+        "compose"
+      ],
+      "scope": "container",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "docker",
+        "buildx"
+      ],
+      "scope": "container",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "docker",
+        "image"
+      ],
+      "scope": "container",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "docker",
+        "container"
+      ],
+      "scope": "container",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "docker",
+        "volume"
+      ],
+      "scope": "container",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "docker",
+        "network"
+      ],
+      "scope": "container",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "podman",
+        "version"
+      ],
+      "scope": "container",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "podman",
+        "info"
+      ],
+      "scope": "container",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "podman",
+        "ps"
+      ],
+      "scope": "container",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "podman",
+        "images"
+      ],
+      "scope": "container",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "podman",
+        "inspect"
+      ],
+      "scope": "container",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "podman",
+        "logs"
+      ],
+      "scope": "container",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "podman",
+        "stats"
+      ],
+      "scope": "container",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "podman",
+        "top"
+      ],
+      "scope": "container",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "podman",
+        "build"
+      ],
+      "scope": "container",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "podman",
+        "pull"
+      ],
+      "scope": "container",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "podman",
+        "run"
+      ],
+      "scope": "container",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "podman",
+        "exec"
+      ],
+      "scope": "container",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "podman",
+        "create"
+      ],
+      "scope": "container",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "podman",
+        "start"
+      ],
+      "scope": "container",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "podman",
+        "stop"
+      ],
+      "scope": "container",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "podman",
+        "restart"
+      ],
+      "scope": "container",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "podman",
+        "wait"
+      ],
+      "scope": "container",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "podman",
+        "compose"
+      ],
+      "scope": "container",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "npm",
+        "test"
+      ],
+      "scope": "project",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "npm",
+        "run"
+      ],
+      "scope": "project",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "npm",
+        "ci"
+      ],
+      "scope": "project",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "npm",
+        "install"
+      ],
+      "scope": "project",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "npm",
+        "ls"
+      ],
+      "scope": "project",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "npm",
+        "list"
+      ],
+      "scope": "project",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "npm",
+        "explain"
+      ],
+      "scope": "project",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "npm",
+        "outdated"
+      ],
+      "scope": "project",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "npm",
+        "view"
+      ],
+      "scope": "project",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "npm",
+        "info"
+      ],
+      "scope": "project",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "npm",
+        "config"
+      ],
+      "scope": "project",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "pnpm",
+        "test"
+      ],
+      "scope": "project",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "pnpm",
+        "run"
+      ],
+      "scope": "project",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "pnpm",
+        "install"
+      ],
+      "scope": "project",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "pnpm",
+        "list"
+      ],
+      "scope": "project",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "pnpm",
+        "why"
+      ],
+      "scope": "project",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "pnpm",
+        "outdated"
+      ],
+      "scope": "project",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "pnpm",
+        "view"
+      ],
+      "scope": "project",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "pnpm",
+        "exec"
+      ],
+      "scope": "project",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "yarn",
+        "test"
+      ],
+      "scope": "project",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "yarn",
+        "run"
+      ],
+      "scope": "project",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "yarn",
+        "install"
+      ],
+      "scope": "project",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "yarn",
+        "list"
+      ],
+      "scope": "project",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "yarn",
+        "why"
+      ],
+      "scope": "project",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "yarn",
+        "info"
+      ],
+      "scope": "project",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "bun",
+        "test"
+      ],
+      "scope": "project",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "bun",
+        "run"
+      ],
+      "scope": "project",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "bun",
+        "install"
+      ],
+      "scope": "project",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "bun",
+        "pm"
+      ],
+      "scope": "project",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "cargo",
+        "build"
+      ],
+      "scope": "project",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "cargo",
+        "test"
+      ],
+      "scope": "project",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "cargo",
+        "check"
+      ],
+      "scope": "project",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "cargo",
+        "fmt"
+      ],
+      "scope": "project",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "cargo",
+        "clippy"
+      ],
+      "scope": "project",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "cargo",
+        "bench"
+      ],
+      "scope": "project",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "cargo",
+        "doc"
+      ],
+      "scope": "project",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "cargo",
+        "metadata"
+      ],
+      "scope": "project",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "cargo",
+        "tree"
+      ],
+      "scope": "project",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "cargo",
+        "fetch"
+      ],
+      "scope": "project",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "rustc",
+        "--version"
+      ],
+      "scope": "project",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "rustc",
+        "--help"
+      ],
+      "scope": "project",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "go",
+        "version"
+      ],
+      "scope": "project",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "go",
+        "help"
+      ],
+      "scope": "project",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "go",
+        "build"
+      ],
+      "scope": "project",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "go",
+        "test"
+      ],
+      "scope": "project",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "go",
+        "vet"
+      ],
+      "scope": "project",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "go",
+        "fmt"
+      ],
+      "scope": "project",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "go",
+        "list"
+      ],
+      "scope": "project",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "go",
+        "mod"
+      ],
+      "scope": "project",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "go",
+        "doc"
+      ],
+      "scope": "project",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "go",
+        "env"
+      ],
+      "scope": "project",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "dotnet",
+        "--info"
+      ],
+      "scope": "project",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "dotnet",
+        "--version"
+      ],
+      "scope": "project",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "dotnet",
+        "build"
+      ],
+      "scope": "project",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "dotnet",
+        "test"
+      ],
+      "scope": "project",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "dotnet",
+        "restore"
+      ],
+      "scope": "project",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "dotnet",
+        "format"
+      ],
+      "scope": "project",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "dotnet",
+        "list"
+      ],
+      "scope": "project",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "swift",
+        "--version"
+      ],
+      "scope": "project",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "swift",
+        "build"
+      ],
+      "scope": "project",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "swift",
+        "test"
+      ],
+      "scope": "project",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "swift",
+        "package"
+      ],
+      "scope": "project",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "cmake",
+        "--version"
+      ],
+      "scope": "project",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "cmake",
+        "--help"
+      ],
+      "scope": "project",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "cmake",
+        "--build"
+      ],
+      "scope": "project",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "cmake",
+        "--install"
+      ],
+      "scope": "project",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "cmake",
+        "-S"
+      ],
+      "scope": "project",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "cmake",
+        "-B"
+      ],
+      "scope": "project",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "ctest",
+        "--version"
+      ],
+      "scope": "project",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "ctest",
+        "--help"
+      ],
+      "scope": "project",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "ctest",
+        "--test-dir"
+      ],
+      "scope": "project",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "ctest",
+        "--output-on-failure"
+      ],
+      "scope": "project",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "make",
+        "--version"
+      ],
+      "scope": "project",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "make",
+        "--help"
+      ],
+      "scope": "project",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "make",
+        "-n"
+      ],
+      "scope": "project",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "make",
+        "-j"
+      ],
+      "scope": "project",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "make",
+        "all"
+      ],
+      "scope": "project",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "make",
+        "test"
+      ],
+      "scope": "project",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "make",
+        "check"
+      ],
+      "scope": "project",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "make",
+        "build"
+      ],
+      "scope": "project",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "just",
+        "--version"
+      ],
+      "scope": "project",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "just",
+        "--list"
+      ],
+      "scope": "project",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "just",
+        "--show"
+      ],
+      "scope": "project",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "just",
+        "build"
+      ],
+      "scope": "project",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "just",
+        "test"
+      ],
+      "scope": "project",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "just",
+        "check"
+      ],
+      "scope": "project",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "uv",
+        "--version"
+      ],
+      "scope": "project",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "uv",
+        "run"
+      ],
+      "scope": "project",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "uv",
+        "sync"
+      ],
+      "scope": "project",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "uv",
+        "lock"
+      ],
+      "scope": "project",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "uv",
+        "tree"
+      ],
+      "scope": "project",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "uv",
+        "pip"
+      ],
+      "scope": "project",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "pip",
+        "--version"
+      ],
+      "scope": "project",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "pip",
+        "check"
+      ],
+      "scope": "project",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "pip",
+        "list"
+      ],
+      "scope": "project",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "pip",
+        "show"
+      ],
+      "scope": "project",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "pip",
+        "index"
+      ],
+      "scope": "project",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "pip",
+        "install"
+      ],
+      "scope": "project",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "pip",
+        "download"
+      ],
+      "scope": "project",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "pip3",
+        "--version"
+      ],
+      "scope": "project",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "pip3",
+        "check"
+      ],
+      "scope": "project",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "pip3",
+        "list"
+      ],
+      "scope": "project",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "pip3",
+        "show"
+      ],
+      "scope": "project",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "pip3",
+        "index"
+      ],
+      "scope": "project",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "pip3",
+        "install"
+      ],
+      "scope": "project",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "pip3",
+        "download"
+      ],
+      "scope": "project",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "poetry",
+        "--version"
+      ],
+      "scope": "project",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "poetry",
+        "run"
+      ],
+      "scope": "project",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "poetry",
+        "check"
+      ],
+      "scope": "project",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "poetry",
+        "show"
+      ],
+      "scope": "project",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "poetry",
+        "install"
+      ],
+      "scope": "project",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "poetry",
+        "lock"
+      ],
+      "scope": "project",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "hatch",
+        "--version"
+      ],
+      "scope": "project",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "hatch",
+        "run"
+      ],
+      "scope": "project",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "hatch",
+        "env"
+      ],
+      "scope": "project",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "hatch",
+        "build"
+      ],
+      "scope": "project",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "conda",
+        "--version"
+      ],
+      "scope": "project",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "conda",
+        "list"
+      ],
+      "scope": "project",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "conda",
+        "info"
+      ],
+      "scope": "project",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "conda",
+        "run"
+      ],
+      "scope": "project",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "conda",
+        "install"
+      ],
+      "scope": "project",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "conda",
+        "create"
+      ],
+      "scope": "project",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "Rscript",
+        "--version"
+      ],
+      "scope": "project",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "Rscript",
+        "--help"
+      ],
+      "scope": "project",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "julia",
+        "--version"
+      ],
+      "scope": "project",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "julia",
+        "--help"
+      ],
+      "scope": "project",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "java",
+        "--version"
+      ],
+      "scope": "project",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "java",
+        "-version"
+      ],
+      "scope": "project",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "java",
+        "--help"
+      ],
+      "scope": "project",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "mvn",
+        "--version"
+      ],
+      "scope": "project",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "mvn",
+        "test"
+      ],
+      "scope": "project",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "mvn",
+        "compile"
+      ],
+      "scope": "project",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "mvn",
+        "package"
+      ],
+      "scope": "project",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "mvn",
+        "verify"
+      ],
+      "scope": "project",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "gradle",
+        "--version"
+      ],
+      "scope": "project",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "gradle",
+        "tasks"
+      ],
+      "scope": "project",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "gradle",
+        "build"
+      ],
+      "scope": "project",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "gradle",
+        "test"
+      ],
+      "scope": "project",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "gradle",
+        "check"
+      ],
+      "scope": "project",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "ruff",
+        "--version"
+      ],
+      "scope": "project",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "ruff",
+        "check"
+      ],
+      "scope": "project",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "ruff",
+        "format"
+      ],
+      "scope": "project",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "pytest",
+        "--version"
+      ],
+      "scope": "project",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "pytest",
+        "-q"
+      ],
+      "scope": "project",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "pytest",
+        "-v"
+      ],
+      "scope": "project",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "pytest",
+        "-x"
+      ],
+      "scope": "project",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "pytest",
+        "--collect-only"
+      ],
+      "scope": "project",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "coverage",
+        "--version"
+      ],
+      "scope": "project",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "coverage",
+        "run"
+      ],
+      "scope": "project",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "coverage",
+        "report"
+      ],
+      "scope": "project",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "coverage",
+        "html"
+      ],
+      "scope": "project",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "coverage",
+        "xml"
+      ],
+      "scope": "project",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "coverage",
+        "json"
+      ],
+      "scope": "project",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "sphinx-build",
+        "--version"
+      ],
+      "scope": "project",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "sphinx-build",
+        "-b"
+      ],
+      "scope": "project",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "sphinx-build",
+        "-M"
+      ],
+      "scope": "project",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "quarto",
+        "--version"
+      ],
+      "scope": "project",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "quarto",
+        "check"
+      ],
+      "scope": "project",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "quarto",
+        "render"
+      ],
+      "scope": "project",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "quarto",
+        "preview"
+      ],
+      "scope": "project",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "pandoc",
+        "--version"
+      ],
+      "scope": "project",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "pandoc",
+        "--help"
+      ],
+      "scope": "project",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "pandoc",
+        "-f"
+      ],
+      "scope": "project",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "pandoc",
+        "-t"
+      ],
+      "scope": "project",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "typst",
+        "--version"
+      ],
+      "scope": "project",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "typst",
+        "compile"
+      ],
+      "scope": "project",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "typst",
+        "watch"
+      ],
+      "scope": "project",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "typst",
+        "fonts"
+      ],
+      "scope": "project",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "tectonic",
+        "--version"
+      ],
+      "scope": "project",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "tectonic",
+        "-X"
+      ],
+      "scope": "project",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "latexmk",
+        "-v"
+      ],
+      "scope": "project",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "latexmk",
+        "-pdf"
+      ],
+      "scope": "project",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "latexmk",
+        "-xelatex"
+      ],
+      "scope": "project",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "latexmk",
+        "-lualatex"
+      ],
+      "scope": "project",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "python",
+        "--version"
+      ],
+      "scope": "version",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "python",
+        "--help"
+      ],
+      "scope": "version",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "python3",
+        "--version"
+      ],
+      "scope": "version",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "python3",
+        "--help"
+      ],
+      "scope": "version",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "python3.10",
+        "--version"
+      ],
+      "scope": "version",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "python3.10",
+        "--help"
+      ],
+      "scope": "version",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "python3.11",
+        "--version"
+      ],
+      "scope": "version",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "python3.11",
+        "--help"
+      ],
+      "scope": "version",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "python3.12",
+        "--version"
+      ],
+      "scope": "version",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "python3.12",
+        "--help"
+      ],
+      "scope": "version",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "python3.13",
+        "--version"
+      ],
+      "scope": "version",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "python3.13",
+        "--help"
+      ],
+      "scope": "version",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "node",
+        "--version"
+      ],
+      "scope": "version",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "node",
+        "--help"
+      ],
+      "scope": "version",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "nodejs",
+        "--version"
+      ],
+      "scope": "version",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "nodejs",
+        "--help"
+      ],
+      "scope": "version",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "deno",
+        "--version"
+      ],
+      "scope": "version",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "deno",
+        "--help"
+      ],
+      "scope": "version",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "ruby",
+        "--version"
+      ],
+      "scope": "version",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "ruby",
+        "--help"
+      ],
+      "scope": "version",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "perl",
+        "--version"
+      ],
+      "scope": "version",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "perl",
+        "--help"
+      ],
+      "scope": "version",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "php",
+        "--version"
+      ],
+      "scope": "version",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "php",
+        "--help"
+      ],
+      "scope": "version",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "gcc",
+        "--version"
+      ],
+      "scope": "version",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "gcc",
+        "--help"
+      ],
+      "scope": "version",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "g++",
+        "--version"
+      ],
+      "scope": "version",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "g++",
+        "--help"
+      ],
+      "scope": "version",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "clang",
+        "--version"
+      ],
+      "scope": "version",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "clang",
+        "--help"
+      ],
+      "scope": "version",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "clang++",
+        "--version"
+      ],
+      "scope": "version",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "clang++",
+        "--help"
+      ],
+      "scope": "version",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "cc",
+        "--version"
+      ],
+      "scope": "version",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "cc",
+        "--help"
+      ],
+      "scope": "version",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "c++",
+        "--version"
+      ],
+      "scope": "version",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "c++",
+        "--help"
+      ],
+      "scope": "version",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "javac",
+        "--version"
+      ],
+      "scope": "version",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "javac",
+        "--help"
+      ],
+      "scope": "version",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "scala",
+        "--version"
+      ],
+      "scope": "version",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "scala",
+        "--help"
+      ],
+      "scope": "version",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "kotlin",
+        "--version"
+      ],
+      "scope": "version",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "kotlin",
+        "--help"
+      ],
+      "scope": "version",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "kotlinc",
+        "--version"
+      ],
+      "scope": "version",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "kotlinc",
+        "--help"
+      ],
+      "scope": "version",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "elixir",
+        "--version"
+      ],
+      "scope": "version",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "elixir",
+        "--help"
+      ],
+      "scope": "version",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "erl",
+        "--version"
+      ],
+      "scope": "version",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "erl",
+        "--help"
+      ],
+      "scope": "version",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "lua",
+        "--version"
+      ],
+      "scope": "version",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "lua",
+        "--help"
+      ],
+      "scope": "version",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "luajit",
+        "--version"
+      ],
+      "scope": "version",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "luajit",
+        "--help"
+      ],
+      "scope": "version",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "sqlite3",
+        "--version"
+      ],
+      "scope": "version",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "sqlite3",
+        "--help"
+      ],
+      "scope": "version",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "duckdb",
+        "--version"
+      ],
+      "scope": "version",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "duckdb",
+        "--help"
+      ],
+      "scope": "version",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "ninja",
+        "--version"
+      ],
+      "scope": "version",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "ninja",
+        "--help"
+      ],
+      "scope": "version",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "meson",
+        "--version"
+      ],
+      "scope": "version",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "meson",
+        "--help"
+      ],
+      "scope": "version",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "pytest",
+        "--help"
+      ],
+      "scope": "version",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "mypy",
+        "--version"
+      ],
+      "scope": "version",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "mypy",
+        "--help"
+      ],
+      "scope": "version",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "pyright",
+        "--version"
+      ],
+      "scope": "version",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "pyright",
+        "--help"
+      ],
+      "scope": "version",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "pylint",
+        "--version"
+      ],
+      "scope": "version",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "pylint",
+        "--help"
+      ],
+      "scope": "version",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "black",
+        "--version"
+      ],
+      "scope": "version",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "black",
+        "--help"
+      ],
+      "scope": "version",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "isort",
+        "--version"
+      ],
+      "scope": "version",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "isort",
+        "--help"
+      ],
+      "scope": "version",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "bandit",
+        "--version"
+      ],
+      "scope": "version",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "bandit",
+        "--help"
+      ],
+      "scope": "version",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "tsc",
+        "--version"
+      ],
+      "scope": "version",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "tsc",
+        "--help"
+      ],
+      "scope": "version",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "eslint",
+        "--version"
+      ],
+      "scope": "version",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "eslint",
+        "--help"
+      ],
+      "scope": "version",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "prettier",
+        "--version"
+      ],
+      "scope": "version",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "prettier",
+        "--help"
+      ],
+      "scope": "version",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "stylelint",
+        "--version"
+      ],
+      "scope": "version",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "stylelint",
+        "--help"
+      ],
+      "scope": "version",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "biome",
+        "--version"
+      ],
+      "scope": "version",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "biome",
+        "--help"
+      ],
+      "scope": "version",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "jest",
+        "--version"
+      ],
+      "scope": "version",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "jest",
+        "--help"
+      ],
+      "scope": "version",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "vitest",
+        "--version"
+      ],
+      "scope": "version",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "vitest",
+        "--help"
+      ],
+      "scope": "version",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "playwright",
+        "--version"
+      ],
+      "scope": "version",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "playwright",
+        "--help"
+      ],
+      "scope": "version",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "cypress",
+        "--version"
+      ],
+      "scope": "version",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "cypress",
+        "--help"
+      ],
+      "scope": "version",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "tox",
+        "--version"
+      ],
+      "scope": "version",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "tox",
+        "--help"
+      ],
+      "scope": "version",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "nox",
+        "--version"
+      ],
+      "scope": "version",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "nox",
+        "--help"
+      ],
+      "scope": "version",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "nosetests",
+        "--version"
+      ],
+      "scope": "version",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "nosetests",
+        "--help"
+      ],
+      "scope": "version",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "unittest2",
+        "--version"
+      ],
+      "scope": "version",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "unittest2",
+        "--help"
+      ],
+      "scope": "version",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "biber",
+        "--version"
+      ],
+      "scope": "version",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "biber",
+        "--help"
+      ],
+      "scope": "version",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "bibtex",
+        "--version"
+      ],
+      "scope": "version",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "bibtex",
+        "--help"
+      ],
+      "scope": "version",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "makeinfo",
+        "--version"
+      ],
+      "scope": "version",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "makeinfo",
+        "--help"
+      ],
+      "scope": "version",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "graphviz",
+        "--version"
+      ],
+      "scope": "version",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "graphviz",
+        "--help"
+      ],
+      "scope": "version",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "dot",
+        "--version"
+      ],
+      "scope": "version",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "dot",
+        "--help"
+      ],
+      "scope": "version",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "neato",
+        "--version"
+      ],
+      "scope": "version",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "neato",
+        "--help"
+      ],
+      "scope": "version",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "convert",
+        "--version"
+      ],
+      "scope": "version",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "convert",
+        "--help"
+      ],
+      "scope": "version",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "magick",
+        "--version"
+      ],
+      "scope": "version",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "magick",
+        "--help"
+      ],
+      "scope": "version",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "ffmpeg",
+        "--version"
+      ],
+      "scope": "version",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "ffmpeg",
+        "--help"
+      ],
+      "scope": "version",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "sox",
+        "--version"
+      ],
+      "scope": "version",
+      "source": "duo"
+    },
+    {
+      "prefix": [
+        "sox",
+        "--help"
+      ],
+      "scope": "version",
+      "source": "duo"
+    }
+  ]
+}
