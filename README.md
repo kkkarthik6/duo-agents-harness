@@ -27,6 +27,8 @@ You need:
 Windows runs Duo inside WSL (Ubuntu): `wsl --install -d Ubuntu`, open Ubuntu, then run `npx duo-agents`.
 If something is missing, the installer says which command to run.
 
+Step-by-step guide: [INSTALL.md](INSTALL.md).
+
 The installer puts Duo in `~/Duo`, adds a `duo` command, starts the engine and opens
 http://127.0.0.1:8787 in your browser. From a source checkout, run `sh install.sh` instead.
 

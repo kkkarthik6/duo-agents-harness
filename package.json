@@ -24,7 +24,8 @@
     "VERSION",
     "README.md",
     "skills",
-    "LICENSE"
+    "LICENSE",
+    "INSTALL.md"
   ],
   "keywords": [
     "ai",
