@@ -1,5 +1,6 @@
 """Run-owned terminal sessions. A saved pane number alone is never ownership."""
 import hashlib
+import time
 from pathlib import Path
 
 from . import config
@@ -47,3 +48,30 @@ def alive(state):
 def close(state):
     if owned(state):
         tmux('kill-session', '-t', name(state), check=False)
+
+
+PREFIX = 'duo-run-'
+GRACE = 600          # a session younger than this is never swept: its run may still be starting
+
+
+def sweep(keep_ids, now=None):
+    """Close Duo worker sessions that no active run owns, so they do not pile up (each holds panes and memory).
+    A session stays when its run is active, someone has it open in a terminal, or it is brand new."""
+    now = time.time() if now is None else now
+    out = tmux('list-sessions', '-F', '#{session_name}\t#{@duo_run_id}\t#{session_attached}\t#{session_created}', check=False)
+    closed = []
+    for line in out.splitlines():
+        parts = line.split('\t')
+        if len(parts) != 4 or not parts[0].startswith(PREFIX):
+            continue
+        session_name, run_id, attached, created = parts
+        if run_id in keep_ids or attached not in ('', '0'):
+            continue
+        try:
+            if now - float(created) < GRACE:
+                continue
+        except ValueError:
+            continue
+        tmux('kill-session', '-t', session_name, check=False)
+        closed.append(session_name)
+    return closed

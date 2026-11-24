@@ -48,6 +48,11 @@ class Engine(RunPool):
             from . import session_index
             session_index.discover(self.home)
         self._restore()
+        self.swept_at = 0
+        try:
+            self.sweep_workers()
+        except Exception as ex:
+            print("sweep error: %r" % ex, file=sys.stderr)
         if tick:
             threading.Thread(target=self.loop, daemon=True).start()
 
@@ -165,6 +170,14 @@ class Engine(RunPool):
                 if self.session is None:
                     self.session = candidate
 
+    def sweep_workers(self):
+        """Close worker terminals that belong to no active run."""
+        keep = {x['id'] for x in session.list_sessions() if x['status'] in session.ACTIVE} | set(self.sessions)
+        closed = workers.sweep(keep)
+        if closed:
+            print("Closed %d unused worker session(s)." % len(closed), file=sys.stderr)
+        return closed
+
     def quit(self):
         with session.LOCK:
             for s in list(self.managed().values()):
@@ -227,6 +240,9 @@ class Engine(RunPool):
                 with session.LOCK:
                     self.tick_runs()
                     selfdev.tick(self)
+                    if time.time() - self.swept_at > 300:
+                        self.swept_at = time.time()
+                        self.sweep_workers()
             except Exception as ex:
                 print("tick error: %r" % ex, file=sys.stderr)
                 with session.LOCK:
