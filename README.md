@@ -45,7 +45,7 @@ On a Mac, `duo setup` can also build an optional desktop app (needs Xcode tools 
 **From inside an agent.** Install the skill, then say "run this through Duo":
 
 ```bash
-npx skills add <owner>/<repo>@duo
+npx skills add kkkarthik6/duo@duo
 ```
 
 ## How a task runs
