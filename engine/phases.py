@@ -152,7 +152,7 @@ def next_turns(state):
             return [Turn(roles["verifier"], "verify", "verify", [state["chosen"]])]
         if state["round"] >= state["max_rounds"]:
             return "stalled"
-        if repeat_defect.looping(state.get("review_prints", [])):
+        if state.get("repeat_defect") or repeat_defect.looping(state.get("review_prints", [])):
             state["repeat_defect"] = True
             return "stalled"
         state["round"] += 1

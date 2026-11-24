@@ -3,7 +3,7 @@ import unittest
 from pathlib import Path
 from unittest import mock
 
-from engine import phases, repeat_defect, task_output, tmux as tmuxmod
+from engine import loop_judge, phases, repeat_defect, task_output, tmux as tmuxmod
 
 REVIEW = "REVISE. The index generator index() writes link destinations with unescaped spaces. %d BROKEN lines."
 
@@ -62,3 +62,45 @@ class SplitFallbackTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class LoopJudgeTests(unittest.TestCase):
+    ENTRIES = [{"n": i, "kind": k, "prose": "%s %d" % (k, i)} for i, k in
+               enumerate(["build", "critique", "revise", "critique", "revise", "critique", "revise"], 1)]
+
+    def test_it_asks_at_the_third_revise_then_every_third_one_after(self):
+        self.assertEqual([n for n in range(1, 10) if loop_judge.due(n)], [3, 6, 9])
+
+    def test_the_prompt_holds_the_last_three_reviews_and_the_replies_between(self):
+        text = loop_judge.prompt(self.ENTRIES)
+        self.assertEqual(text.count("--- CRITIQUE"), 3)
+        self.assertIn("--- REVISE #7", text)
+        self.assertNotIn("--- BUILD", text)
+
+    def test_only_a_clear_loop_answer_stops_the_run(self):
+        self.assertEqual(loop_judge.parse("LOOP: the index defect is outside the project; the owner must patch it"),
+                         (True, "the index defect is outside the project; the owner must patch it"))
+        self.assertEqual(loop_judge.parse("`LOOP: same defect`"), (True, "same defect"))
+        for text in ("PROGRESS", "", "maybe a loop?", "I could not tell"):
+            self.assertEqual(loop_judge.parse(text), (False, ""), text)
+
+    def test_the_judge_uses_the_first_cli_that_answers(self):
+        calls = []
+
+        def ask(cli, cwd, prompt, **kw):
+            calls.append(cli)
+            return (cli == "claude", "LOOP: stuck") if cli == "claude" else (False, "not signed in")
+        with mock.patch.object(loop_judge.helper, "model_routes", return_value=[("codex", None), ("claude", None)]):
+            self.assertEqual(loop_judge.judge({"entries": self.ENTRIES, "agents": ["codex", "claude"]}, "/tmp", "/tmp", ask), (True, "stuck"))
+        self.assertEqual(calls, ["codex", "claude"])
+
+    def test_no_answer_means_the_run_carries_on(self):
+        with mock.patch.object(loop_judge.helper, "model_routes", return_value=[("codex", None)]):
+            self.assertEqual(loop_judge.judge({"entries": self.ENTRIES, "agents": ["codex"]}, "/tmp", "/tmp",
+                                              lambda *a, **k: (False, "timeout")), (False, ""))
+
+    def test_the_phase_engine_honours_a_judge_verdict(self):
+        state = {"phase": "deep", "deep_step": "critique", "round": 5, "max_rounds": 100, "last_verdict": "REVISE",
+                 "roles": {"builder": "codex", "critic": "claude"}, "agents": ["codex", "claude"], "chosen": "O1", "size": "standard",
+                 "review_prints": [], "repeat_defect": True}
+        self.assertEqual(phases.next_turns(state), "stalled")

@@ -19,7 +19,7 @@ from pathlib import Path
 
 from . import agents as agentmod, harness, models, shots, bounds, config, history, insights, memory, notify, personal, phases, sandbox, security, trust
 from . import build_workflow as buildflow, research_workflow as researchflow
-from . import repeat_defect, jobs, delivery, model_policy, relay, task_output, broker, summary_agent, orchestration as orch
+from . import repeat_defect, loop_judge, jobs, delivery, model_policy, relay, task_output, broker, summary_agent, orchestration as orch
 from .tmux import capture, pane_dead, pane_env, send_key, send_text, split, tail_lines, tmux
 from .active_runtime import Counter
 from . import completion_summary
@@ -1707,6 +1707,12 @@ class Session:
             prints = s.get("review_prints", []) if reply.verdict != "APPROVED" else []
             s["review_prints"] = (prints + ([repeat_defect.fingerprint(reply.prose)] if reply.verdict != "APPROVED" else []))[-repeat_defect.LOOP_AFTER:]
             s.pop("repeat_defect", None)
+            s.pop("loop_reason", None)
+            s["review_run"] = s.get("review_run", 0) + 1 if reply.verdict != "APPROVED" else 0
+            if loop_judge.due(s["review_run"]) and not repeat_defect.looping(s["review_prints"]):
+                stuck, why = loop_judge.judge(s, self.ws, self.dir)
+                if stuck:
+                    s["repeat_defect"], s["loop_reason"] = True, why
         elif e["kind"] == "secure":
             high = [x for x in reply.security if isinstance(x, dict) and str(x.get("severity", "")).lower() == "high"]
             s["secure_ok"] = reply.verdict == "APPROVED" and not high and not s.get("sec_blocked")
@@ -1868,7 +1874,9 @@ class Session:
             self.save()
             return
         if step == "stalled":
-            if s.get("repeat_defect"):
+            if s.get("repeat_defect") and s.get("loop_reason"):
+                why = "a loop check found the run is stuck: %s" % s["loop_reason"]
+            elif s.get("repeat_defect"):
                 why = ("the reviewer has raised the same defect %d times in a row and the builder is not fixing it. "
                        "It is probably something only you can change, such as a file outside this project" % repeat_defect.LOOP_AFTER)
             elif s.get("stall", 0) >= phases.STALL_LIMIT:
