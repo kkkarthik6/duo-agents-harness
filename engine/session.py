@@ -524,6 +524,7 @@ class Session:
                  history_recorded=False, verify_failures=0, paused=False, pending=[])
         s.pop("build_task_id", None)
         s.pop("review_exchanges", None)
+        s.pop("planned_current_goal", None)
         s.pop("failed_turn", None)
         s.pop("task_delivery", None)
         for key in ('relay_input', 'relay_step', 'assessments', 'stage_requests'):
@@ -928,7 +929,7 @@ class Session:
                                                        gate_log=(s.get("gate_log") or "")))
             if turn.kind in ("build", "revise") and s.get("size") != "trivial":
                 if not package:
-                    parts.append("If one item is blocked, finish independent work first. Report which items wait on it, "
+                    parts.append("Advance the current goal, then the next ready goal. Follow the latest review within the accepted plan. If an item is blocked, finish independent goals. Report which items wait on it, "
                                  "who can unblock them, and what must change before retrying.")
                 parts.append("Python deps: use a project virtualenv, run bootstrap steps as separate commands, keep caches in the workspace. "
                              "Fetch public models and datasets with native permissions and retry the current route; if access still fails, "
@@ -1702,7 +1703,14 @@ class Session:
         if e['kind'] == 'plan_review':
             s['plan_verdict'] = reply.verdict
             s['plan_feedback'] = reply.prose
-            s['accepted_plan_signature'] = roleflow.plan_signature(self.dir / 'plan.md') if reply.verdict == 'APPROVED' else None
+            plan = self.dir / 'plan.md'
+            s['accepted_plan_signature'] = roleflow.plan_signature(plan) if reply.verdict == 'APPROVED' else None
+            s.pop('planned_current_goal', None)
+            if s['accepted_plan_signature']:
+                for line in plan.read_text(errors="replace").splitlines():
+                    if line.strip().lower().startswith('current goal:'):
+                        s['planned_current_goal'] = line.split(':', 1)[1].strip()
+                        break
             self.save()
             return
         if e['kind'] == 'exchange':

@@ -22,10 +22,10 @@ export function renderTaskMap(root, graph, options = {}) {
   styles(); root.classList.add('duo-taskmap');
   let state = roots.get(root);
   if (!state || state.run !== options.runId) {
-    state = {run: options.runId, selected: null, open: new Set(['map','nodes','completion','contributions']), files: new Map(), errors: null, errorsBusy: false};
+    state = {run: options.runId, selected: null, open: new Set(['map','nodes','completion','contributions','goals']), files: new Map(), errors: null, errorsBusy: false};
     roots.set(root, state);
   }
-  const signature = JSON.stringify([graph, options.helper, options.runStatus, options.contributions, options.packages, options.checks]);
+  const signature = JSON.stringify([graph, options.helper, options.runStatus, options.globalGoal, options.goalUpdates, options.currentGoal, options.contributions, options.packages, options.checks]);
   if (state.signature === signature && !state.dirty) return;
   state.signature = signature; state.dirty = false;
   if (state.version !== graph?.updated) {
@@ -85,6 +85,13 @@ export function renderTaskMap(root, graph, options = {}) {
     toolbar.append(make('p', 'Select a task to inspect its assignment, saved work, and continuation.', 'taskmap-hint'),
       action('Collapse details', () => { state.open = new Set(['map']); state.selected = null; redraw(); }));
     body.append(toolbar);
+    if (options.globalGoal) {
+      body.append(block('goals', 'Global goal and current assignment', content => {
+        content.append(make('h4', 'Global goal'), make('p', options.globalGoal));
+        for (const update of options.goalUpdates || []) content.append(make('p', 'User update · ' + update));
+        if (options.currentGoal) content.append(make('h4', 'Current goal'), make('p', options.currentGoal));
+      }));
+    }
     const turns = options.contributions || [];
     const packages = options.packages || [];
     if (turns.length || packages.length) body.append(block('contributions', 'What this run contributed', content => {

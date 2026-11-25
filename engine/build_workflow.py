@@ -37,7 +37,7 @@ def prompt(report, task_text):
             "Include stable observed input identities or hashes in each detail. A new log timestamp is not a changed prerequisite. "
             "Distinguish downloaded files from evidence needed for a claim. Record observed throughput and a workload estimate when relevant. "
             "If irrelevant, explain not_applicable. Do not infer undocumented model cutoffs. "
-            "Divide only the accepted build into substantial work packages. Use exact product file paths, dependencies, "
+            "Map independent goals to separate packages. Group only work that must be delivered together. Put true prerequisites in depends. Use exact product file paths, dependencies, "
             "a concrete delivered behavior, and an acceptance command or inspection. For empirical research, include an executable "
             "experiment runner when requested, separate from dated evidence acquisition and scored experiments. "
             "Keep required registration before scored experiments. Paper polish must not substitute for an experimental deliverable. "
@@ -197,7 +197,7 @@ def complete(workflow):
 
 def package_prompt(package):
     return ("\nBUILD PACKAGE: " + json.dumps(package) + "\n"
-            "Deliver the entire assigned capability and integration in this build. "
+            "This package is the current goal within the accepted global goal. Deliver its assigned capability. "
             "Feasibility is finished for this package. Do not spend build on repeated planning, status reports, "
             "or unrelated paper edits. Preserve registration and evidence requirements. "
             "Return build_evidence with behavior (what now works). Include supporting evidence when relevant. "

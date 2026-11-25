@@ -131,7 +131,9 @@ def plan_signature(path):
 
 def plan_prompt(shared, feedback=''):
     return ('Write a complete implementation plan. Inspect the relevant source and available skills. '
-            'Give each required outcome a short stable label, dependencies, outputs, and an observable success check. '
+            'State the global goal from the user request and explicit updates. For multi-part work, number required goals (1, 2) '
+            'and necessary subgoals (2.1). For each, state its outcome, success check, and "depends on <IDs>" or '
+            '"independent goal". Numbering is not a dependency. Write "Current goal: <ID and outcome>" on its own line for the first actionable item. '
             'For an open UI decision, compare two interactions. Reuse the nearest design reference or find one relevant example. '
             'Generate one mockup only if it settles that decision and the tool is available. Give the builder its path and a short description. '
             'For open-ended research, use the closest prior work to identify one credible alternative and the cheapest test that could '

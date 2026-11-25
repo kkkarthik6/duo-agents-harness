@@ -31,7 +31,9 @@ def requirements(root):
 REVIEW = ('Check the finished stage against every requirement and the saved check evidence; reuse passing evidence only while its inputs are unchanged. '
           'Include concrete security risks. Start with APPROVED or REVISE on its own line. For REVISE, list EVERY required fix now, in this one review, '
           'one per line as `file: problem -> fix`; do not hold any back for a later round. Tie each fix to an unmet user requirement or a regression. Optional ideas never require another round. '
-          'After the findings, summarize changed plan outcomes using one line each: Outcome <plan item>: <what changed and the check result>. '
+          'Account for every required goal at first review; then report changes only. Use Outcome <stable item ID and name>: '
+          'Achieved / Needs revision / Needs user input / Waiting on <ID> / Unverified, followed by evidence or the exact missing input. '
+          'Approve the integrated build only when all required goals pass, including integration checks in the plan. '
           'Include regressions, useful discoveries, or no demonstrated gain. If work remains, add Next: <action and expected result, '
-          'or owner and condition for retry>. Only if every remaining item needs external action, use a separate '
+          'or owner and condition for retry>. Continue an independent goal whenever possible. Only if all remaining items need external action or depend on such items, use a separate '
           'Blocked: line naming the owner and retry condition. Use existing evidence. Never approve because a round limit was reached.')

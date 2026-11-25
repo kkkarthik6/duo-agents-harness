@@ -94,7 +94,7 @@ def prompt(inputs, report, research=False):
     return (
         'You are the independent Goal checker. Read the saved goal input at ' + str(inputs) + '. '
         'Read referenced deliverables, reviews, experiment results, and previous cycle summaries. '
-        'Summarize outcomes against the original user goal and every current requirement. '
+        'Check the global goal against every required numbered outcome and explicit user update. A completed current goal alone cannot close the global goal. '
         'A passed build review or completed summary alone does not establish goal achievement. '
         'Ask: why did this fail, which assumption failed, why not another technique, and what evidence would decide? '
         'Answer from saved evidence; mark uncertainty. Compare materially different alternatives before selecting further work. '

@@ -940,7 +940,15 @@ function renderTimeline(s) {
 }
 
 function renderRunMap(s) {
+  const currentEntries = (s?.entries || []).filter(e => (e.cycle || 1) === (s?.cycle || 1));
+  const lastReview = currentEntries.findLast(e => e.kind === 'critique' && !e.invalid);
+  const currentGoal = s?.pending?.find(p => p.build_package)?.build_package?.title ||
+    (s?.goal?.status === 'active' && s.goal.next_action) ||
+    (lastReview ? lastReview.review_next : s?.planned_current_goal);
   renderTaskMap($("#taskmap-root"), s?.broker || {nodes:[]}, {
+    globalGoal:s?.task,
+    goalUpdates:(s?.entries || []).filter(e => e.kind === 'followup' && e.author === 'human').map(e => e.prose),
+    currentGoal:s?.status === 'running' ? currentGoal : '',
     contributions: (s?.entries || []).filter(e => !e.invalid && ['build','revise','critique'].includes(e.kind)).map(e => ({
       n:e.n, kind:e.kind, verdict:e.verdict, outcomes:e.review_outcomes, next:e.review_next,
       summary:(e.summary || '').slice(0,350)

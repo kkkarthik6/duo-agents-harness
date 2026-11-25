@@ -136,7 +136,7 @@ def brief(state, kind=None, rel='.duo', patch=None):
                                                                        state.get('round', 0), state.get('max_rounds'), state.get('cycle', 1)))
     if asks:
         first, later = asks[0], asks[1:]
-        out.append('Original ask: ' + _block(first.get('prose')))
+        out.append('Global goal (original ask): ' + _block(first.get('prose')))
         for e in later:
             out.append('Follow-up %s: %s' % (e.get('cycle', ''), _block(e.get('prose'))))
     notes = [e for e in state.get('entries', []) if e.get('author') == 'human' and e.get('kind') == 'message']
