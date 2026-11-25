@@ -132,6 +132,10 @@ def plan_signature(path):
 def plan_prompt(shared, feedback=''):
     return ('Write a complete implementation plan. Inspect the relevant source and available skills. '
             'Give each required outcome a short stable label, dependencies, outputs, and an observable success check. '
+            'For an open UI decision, compare two interactions. Reuse the nearest design reference or find one relevant example. '
+            'Generate one mockup only if it settles that decision and the tool is available. Give the builder its path and a short description. '
+            'For open-ended research, use the closest prior work to identify one credible alternative and the cheapest test that could '
+            'distinguish it. Reuse existing evidence first. Preserve fixed protocols. '
             'Do not implement product changes during planning. Resolve required review findings.\n' +
             instructions('lead') + '\n' + shared + '\n# Previous review\n' + feedback)
 
@@ -140,5 +144,5 @@ def review_prompt(shared, plan_path):
     return ('Review this plan in a fresh session; you did not write it. Inspect source when needed; do not edit the plan or product. '
             'Start with APPROVED or REVISE on its own line. For REVISE, list EVERY required correction now, in this one review, '
             'one per line as `plan step: problem -> fix`, quoting the plan text you object to; hold nothing back for later rounds. '
-            'Keep optional suggestions in a separate short list.\n' +
+            'Tie required corrections to the user goal and current constraints. Keep optional ideas outside the acceptance checks.\n' +
             instructions('challenger') + '\n' + shared + '\n# Plan\nRead the plan at `' + plan_path + '`.')
