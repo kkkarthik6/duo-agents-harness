@@ -181,6 +181,20 @@ def collect(packet, root, folder, number):
             shutil.copy2(path, target)
 
 
+def review_notes(text):
+    """Optional display notes. Missing notes never invalidate a review or trigger a turn."""
+    outcomes = {}
+    next_action = ""
+    for line in text.splitlines():
+        line = line.strip().lstrip("- ").strip()
+        match = re.fullmatch(r"Outcome ([^:\n]{1,100}):\s*(.+)", line, re.I)
+        if match:
+            outcomes[match[1].strip()] = match[2].strip()
+        elif line.lower().startswith("next:"):
+            next_action = line[5:].strip()
+    return {"review_outcomes": outcomes, "review_next": next_action} if outcomes or next_action else {}
+
+
 def metadata(text):
     """Read optional old metadata without requiring it or trusting its identity."""
     for block in reversed(list(protocol.BLOCK.finditer(text.replace(protocol.END_MARK, "")))):

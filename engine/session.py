@@ -927,6 +927,9 @@ class Session:
             parts.append(INSTRUCTIONS[turn.kind].format(d=self.rel, chosen=chosen, title=ctitle,
                                                        gate_log=(s.get("gate_log") or "")))
             if turn.kind in ("build", "revise") and s.get("size") != "trivial":
+                if not package:
+                    parts.append("If one item is blocked, finish independent work first. Report which items wait on it, "
+                                 "who can unblock them, and what must change before retrying.")
                 parts.append("Python deps: use a project virtualenv, run bootstrap steps as separate commands, keep caches in the workspace. "
                              "Fetch public models and datasets with native permissions and retry the current route; if access still fails, "
                              "report blocker network_access with the host and exact error. Routine checks: 120 s timeout, logs saved. "
@@ -1420,6 +1423,7 @@ class Session:
         broker.import_user_questions(self.dir,p.get("broker_task_id",p["task_id"]),reply.prose,str(self.dir/p["file"]))
         if reply.outcome == "needs_human":
             broker.ask(self.dir,p.get("broker_task_id",p["task_id"]),reply.prose.strip() or "What information should I use to continue this task?")
+        notes = task_output.review_notes(reply.summary) if p["kind"] == "critique" else {}
         clean = broker.route_result(self.dir, p, text, reply.to_dict())
         if clean != text:
             reply.prose = reply.summary = clean
@@ -1430,9 +1434,19 @@ class Session:
                           verdict=reply.verdict, outcome=reply.outcome)
         if reply.outcome in ("blocked", "needs_human"):
             broker.event(self.dir, "task_status", p.get("broker_task_id", p["task_id"]), status="partial")
-            s['failed_turn'] = dict(p)
-            self._pause('Task blocked', reply.summary, 'Resolve the specific missing input or task blocker, then resume.')
-            return
+            package_blocker = (p.get("build_package") and s.get("build_workflow") and
+                               (reply.blocker in buildflow.BLOCKERS or
+                                (reply.outcome == "needs_human" and not reply.blocker)))
+            if not package_blocker:
+                if p["kind"] in ("build", "revise", "critique"):
+                    self.add_entry(p["agent"], p["phase"], p["kind"], reply.prose, summary=reply.summary,
+                                   n=p["n"], file=p["file"], task_id=p["task_id"], verdict=reply.verdict,
+                                   outcome=reply.outcome, blocker=reply.blocker, **notes)
+                s['failed_turn'] = dict(p)
+                self._pause('Task blocked', reply.summary,
+                            notes.get("review_next") or 'Resolve the specific missing input or task blocker, then resume.',
+                            blocker=reply.blocker or "needs_human")
+                return
         if goal_loop.full_cycle(s) and p['kind'] == 'exchange':
             name = '02-build-assignment.md'
             archive = reply.prose
@@ -1572,7 +1586,8 @@ class Session:
                            task_id=p.get("task_id"), outputs=reply.outputs, complete=reply.complete,
                            security=[f.to_dict() for f in sec], review=reply.security if p["kind"] == "secure" else [],
                            build_evidence=reply.build_evidence, blocker_detail=reply.blocker_detail,
-                           build_package=(p.get("build_package") or {}).get("id"))
+                           build_package=(p.get("build_package") or {}).get("id"),
+                           **notes)
         if p['kind'] in ('assess', 'exchange') and outcome in ('blocked', 'needs_human'):
             s['failed_turn'] = dict(p, failure_problems=[reply.summary])
             self._pause('Task assessment blocked', reply.summary, 'Resolve the named input or decision, then resume.')
@@ -2504,6 +2519,18 @@ def load(duo_dir):
     return Session(json.loads(p.read_text())) if p.exists() else None
 
 
+def _latest_contribution(state):
+    for entry in reversed(state.get("entries", [])):
+        if entry.get("invalid") or entry.get("kind") not in ("build", "revise", "critique"):
+            continue
+        notes = entry.get("review_outcomes") or {}
+        label = "Reviewer" if entry["kind"] == "critique" else "Builder"
+        text = " · ".join(f"{item}: {result}" for item, result in notes.items()) or entry.get("summary")
+        if text:
+            return orch.redact(state, label + ": " + " ".join(text[:240].split()))
+    return ""
+
+
 def list_sessions(all_projects=True):
     out = []
     for _, i in session_index.entries(all_projects=all_projects):
@@ -2513,7 +2540,7 @@ def list_sessions(all_projects=True):
                 st = json.loads(sp.read_text())
                 out.append({"id": st["id"], "title": st["title"], "created": st["created"], "status": st["status"],
                             "task_type": st.get("task_type"), "project": st.get("project"),
-                            "entries": len(st["entries"])})
+                            "contribution": _latest_contribution(st), "entries": len(st["entries"])})
             except Exception:
                 pass
     out.sort(key=lambda item: str(item['created']), reverse=True)

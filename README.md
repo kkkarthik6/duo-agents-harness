@@ -70,6 +70,11 @@ Models are matched to roles by tier (large, medium, small) from what your CLIs r
 tier, Duo uses the nearest tier, then the CLI's own default. Failures are tracked, so a model that is out of
 quota or signed out is skipped and the work moves to another one. Saved work is kept.
 
+Open **What this run contributed** in the task map to see the latest reported result for each named outcome.
+Expand **Build review history** to compare cycles and open their evidence. Quick runs show the builder's report.
+When a build package needs an external input, Duo can finish independent packages within the existing run budget.
+The task map shows which items must wait.
+
 Each handoff is a short brief generated from the run's state: the ask, constraints, open defects, changed
 files and who does what next. Older turns collapse to counts, so context stays small without losing work.
 

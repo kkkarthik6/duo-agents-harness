@@ -131,7 +131,7 @@ def plan_signature(path):
 
 def plan_prompt(shared, feedback=''):
     return ('Write a complete implementation plan. Inspect the relevant source and available skills. '
-            'State requirements, steps, outputs, dependencies, and observable success checks. '
+            'Give each required outcome a short stable label, dependencies, outputs, and an observable success check. '
             'Do not implement product changes during planning. Resolve required review findings.\n' +
             instructions('lead') + '\n' + shared + '\n# Previous review\n' + feedback)
 

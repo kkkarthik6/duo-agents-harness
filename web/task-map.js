@@ -22,10 +22,10 @@ export function renderTaskMap(root, graph, options = {}) {
   styles(); root.classList.add('duo-taskmap');
   let state = roots.get(root);
   if (!state || state.run !== options.runId) {
-    state = {run: options.runId, selected: null, open: new Set(['map','nodes','completion']), files: new Map(), errors: null, errorsBusy: false};
+    state = {run: options.runId, selected: null, open: new Set(['map','nodes','completion','contributions']), files: new Map(), errors: null, errorsBusy: false};
     roots.set(root, state);
   }
-  const signature = JSON.stringify([graph, options.helper, options.runStatus]);
+  const signature = JSON.stringify([graph, options.helper, options.runStatus, options.contributions, options.packages, options.checks]);
   if (state.signature === signature && !state.dirty) return;
   state.signature = signature; state.dirty = false;
   if (state.version !== graph?.updated) {
@@ -85,6 +85,38 @@ export function renderTaskMap(root, graph, options = {}) {
     toolbar.append(make('p', 'Select a task to inspect its assignment, saved work, and continuation.', 'taskmap-hint'),
       action('Collapse details', () => { state.open = new Set(['map']); state.selected = null; redraw(); }));
     body.append(toolbar);
+    const turns = options.contributions || [];
+    const packages = options.packages || [];
+    if (turns.length || packages.length) body.append(block('contributions', 'What this run contributed', content => {
+      const reviews = turns.filter(turn => turn.kind === 'critique');
+      const latest = new Map();
+      for (const review of reviews) {
+        for (const [item, result] of Object.entries(review.outcomes || {})) latest.set(item, result);
+      }
+      for (const [item, result] of latest) content.append(make('p', item + ' · ' + result));
+      const last = turns.at(-1);
+      if (last && !Object.keys(last.outcomes || {}).length) content.append(make('p', (last.kind === 'critique' ? 'Reviewer' : 'Builder') + ' reported · ' + last.summary));
+      if (last && options.openTurn) content.append(action('Open latest report', () => options.openTurn(last.n)));
+      if (last?.next) content.append(make('p', 'Next · ' + last.next));
+      const done = new Set(packages.filter(p => p.status === 'done').map(p => p.id));
+      const blocked = new Set((options.checks || []).filter(c => c.status === 'blocked').map(c => c.id));
+      for (const p of packages) {
+        const waiting = [...(p.depends || []).filter(id => !done.has(id)), ...(p.requires || []).filter(id => blocked.has(id))];
+        const status = p.status === 'done' ? 'Built' : p.status === 'blocked' ? 'Blocked' :
+          waiting.length ? 'Waiting on ' + waiting.join(', ') : 'Pending';
+        content.append(make('p', p.id + ' · ' + p.title + ' · ' + status + (p.retry ? ' · ' + p.retry : '')));
+      }
+      if (reviews.length) content.append(block('cycle-history', 'Build review history', history => {
+        for (const review of reviews) {
+          history.append(make('h4', 'Review ' + review.n + ' · ' + (review.verdict || 'Recorded')));
+          const notes = Object.entries(review.outcomes || {});
+          if (!notes.length) history.append(make('p', review.summary));
+          for (const [item, result] of notes) history.append(make('p', item + ' · ' + result));
+          if (options.openTurn) history.append(action('Open review ' + review.n, () => options.openTurn(review.n)));
+          if (review.next) history.append(make('p', 'Next · ' + review.next));
+        }
+      }));
+    }));
     const completion = state.graph.completion_summary;
     if (completion || options.runStatus === 'done') body.append(block('completion', 'Detailed completion handoff', content => {
       const status = completion?.status || 'not_started';

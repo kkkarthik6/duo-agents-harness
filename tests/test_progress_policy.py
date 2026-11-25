@@ -101,3 +101,47 @@ class ActiveBudgetTests(unittest.TestCase):
             root = Path(directory)
             (root / "data").mkdir()
             self.assertIsNone(session._source_fingerprint(root))
+
+
+class ContributionTests(unittest.TestCase):
+    def test_display_notes_keep_outcomes_separate_and_allow_old_reviews(self):
+        from engine import task_output
+        review = "REVISE\n\nOutcome Save: Passed retry test.\n- Outcome Load: Still fails.\nNext: Fix ordering."
+        notes = task_output.review_notes(review)
+        self.assertEqual(notes["review_outcomes"], {"Save": "Passed retry test.", "Load": "Still fails."})
+        self.assertEqual(notes["review_next"], "Fix ordering.")
+        self.assertEqual(task_output.review_notes("REVISE\nOrdering is incorrect."), {})
+
+    def test_one_blocker_leaves_independent_work_ready(self):
+        from engine import build_workflow
+        packages = [dict(id=name, depends=deps, requires=[], status=status)
+                    for name, deps, status in (("1", [], "done"), ("2", [], "blocked"),
+                                               ("3", [], "pending"), ("4", ["2"], "pending"))]
+        workflow = {"packages": packages, "checks": []}
+        self.assertEqual(build_workflow.ready(workflow), [packages[2]])
+        packages[2]["status"] = "done"
+        self.assertEqual(build_workflow.ready(workflow), [])
+        self.assertFalse(build_workflow.complete(workflow))
+        packages[1]["status"] = "done"
+        self.assertEqual(build_workflow.ready(workflow), [packages[3]])
+
+    def test_blocked_reply_reaches_package_scheduler(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            run = root / ".duo" / "test"
+            run.mkdir(parents=True)
+            packages = [dict(id=key, status="pending", requires=[], depends=deps,
+                             deliverables=[key + ".txt"], kind="document")
+                        for key, deps in (("2", []), ("3", []), ("4", ["2"]))]
+            workflow = dict(checks=[], packages=packages, receipts={})
+            state = st(id="test", workspace=str(root), duo_dir=str(run), task="Build items",
+                       phase="deep", deep_step="build", build_workflow=workflow, entries=[],
+                       pending=[], handoff_log=[], status="running", paused=False)
+            engine = session.Session(state)
+            assignment = dict(kind="build", phase="deep", agent="codex", task_id="T1", n=2,
+                              file="replies/build.md", issued_at=1, base={}, build_package=packages[0])
+            with mock.patch.object(engine, "save"):
+                engine.accept(assignment, "Blocked: Owner must supply input for item 2.")
+            self.assertFalse(state["paused"])
+            self.assertEqual(packages[0]["status"], "blocked")
+            self.assertEqual(engine._build_package()["id"], "3")

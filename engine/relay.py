@@ -31,4 +31,7 @@ def requirements(root):
 REVIEW = ('Check the finished stage against every requirement and the saved check evidence; reuse passing evidence only while its inputs are unchanged. '
           'Include concrete security risks. Start with APPROVED or REVISE on its own line. For REVISE, list EVERY required fix now, in this one review, '
           'one per line as `file: problem -> fix`; do not hold any back for a later round. Keep optional improvements in a separate short list. '
-          'Never approve because a round limit was reached.')
+          'After the findings, summarize changed plan outcomes using one line each: Outcome <plan item>: <what changed and the check result>. '
+          'Include regressions, useful discoveries, or no demonstrated gain. If work remains, add Next: <action and expected result, '
+          'or owner and condition for retry>. Only if every remaining item needs external action, use a separate '
+          'Blocked: line naming the owner and retry condition. Use existing evidence. Never approve because a round limit was reached.')

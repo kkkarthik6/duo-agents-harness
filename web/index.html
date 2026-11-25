@@ -941,6 +941,16 @@ function renderTimeline(s) {
 
 function renderRunMap(s) {
   renderTaskMap($("#taskmap-root"), s?.broker || {nodes:[]}, {
+    contributions: (s?.entries || []).filter(e => !e.invalid && ['build','revise','critique'].includes(e.kind)).map(e => ({
+      n:e.n, kind:e.kind, verdict:e.verdict, outcomes:e.review_outcomes, next:e.review_next,
+      summary:(e.summary || '').slice(0,350)
+    })),
+    openTurn:n => select("e:" + n),
+    packages:(s?.build_workflow?.packages || []).map(p => ({
+      id:p.id,title:p.title,status:p.status,depends:p.depends,requires:p.requires,
+      retry:p.blocker_detail?.retry_when
+    })),
+    checks:(s?.build_workflow?.checks || []).map(c => ({id:c.id,status:c.status})),
     runId:s?.id, helper:[...(s?.helper || []),...(s?.conversation || [])], runStatus:s?.status,
     createCompletionSummary:() => api('/api/completion-summary', {id:s.id}),
     openCompletionSummary:() => {setRunPane('summary');renderSummaryDocument(s);},
@@ -1278,7 +1288,7 @@ async function loadSessions() {
   const groups = new Map();
   for (const x of shown) { const k = x.project ?? "Other"; if (!groups.has(k)) groups.set(k, []); groups.get(k).push(x); }
   const row = x => `<div class="sessrow"><button class="sess ${x.id === cur ? "on" : ""}" data-id="${esc(x.id)}">
-    <span class="t">${esc(x.title)}</span><span class="m">${esc(x.created.slice(5, 16).replace("T", " "))}   ${x.status === "stopped" || x.status === "error" ? "<b>unfinished</b>" : esc(STATUS_WORD[x.status] ?? x.status)}${x.decisions ? "   " + x.decisions + " decision" + (x.decisions > 1 ? "s" : "") : ""}</span></button><button class="sessdel" data-del="${esc(x.id)}" aria-label="Delete this run" title="Delete this run">✕</button></div>`;
+    <span class="t">${esc(x.title)}</span>${x.contribution ? `<span class="m">${esc(x.contribution)}</span>` : ''}<span class="m">${esc(x.created.slice(5, 16).replace("T", " "))}   ${x.status === "stopped" || x.status === "error" ? "<b>unfinished</b>" : esc(STATUS_WORD[x.status] ?? x.status)}${x.decisions ? "   " + x.decisions + " decision" + (x.decisions > 1 ? "s" : "") : ""}</span></button><button class="sessdel" data-del="${esc(x.id)}" aria-label="Delete this run" title="Delete this run">✕</button></div>`;
   $("#sessions").innerHTML = (list.length >= 10 ? `<input class="filter" id="sessFilter" placeholder="Filter runs" value="${esc(sessFilter)}">` : "") +
     `<p class="hint" style="margin:8px">${(live?.runs || []).filter(r=>ACTIVE.includes(r.status)).length} active · limit ${live?.max_active_runs || 4}. Separate projects can run together.</p>` +
     (shown.length ? [...groups].map(([p, xs]) => `<div class="group"><h3>${esc(p)}</h3>${xs.map(row).join("")}</div>`).join("")

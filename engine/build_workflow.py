@@ -275,7 +275,11 @@ def blocked_text(workflow):
                 lines.append("%s: %s. Affected: %s." % (check["id"], check["detail"], ", ".join(affected)))
     for package in workflow["packages"]:
         if package.get("status") == "blocked":
-            d = package["blocker_detail"]
-            lines.append("%s: %s. Retry when: %s. Alternatives: %s. Evidence: %s." %
-                         (package["id"], d["missing"], d["retry_when"], "; ".join(map(str, d["alternatives"])), ", ".join(d["attempts"])))
+            d = package.get("blocker_detail") or {}
+            missing = d.get("missing") or "See the build report"
+            retry = d.get("retry_when") or "the blocker changes"
+            lines.append(f"{package['id']}: {missing}. Retry when: {retry}.")
+            for label, field in (("Alternatives", "alternatives"), ("Evidence", "attempts")):
+                if isinstance(d.get(field), list) and d[field]:
+                    lines.append(label + ": " + "; ".join(map(str, d[field])))
     return "\n".join(lines) or "No build package is ready. Check its dependencies."
