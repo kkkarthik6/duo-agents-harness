@@ -461,6 +461,10 @@ main { grid-template-columns:minmax(0,1fr); }
 @media (max-width:1200px) { header > .hbtns { grid-column:1 / -1; grid-row:2; } header > .rail { grid-row:3; } }
 @media (max-width:760px) { .app.hide-details { display:block; } .statusbar { align-items:flex-start; } .statustext { flex:1 1 180px; } }
 
+@media (max-width:760px) {
+  #app aside.side { display:none; }
+  #app.mobile-sessions aside.side { display:block; visibility:visible; padding:10px; max-height:50vh; overflow:auto; }
+}
 </style>
 </head>
 <body>
@@ -531,7 +535,7 @@ window.addEventListener('unhandledrejection',event=>recordUIError(event.reason))
 </script>
 <script type="module">
 import {createNotificationCenter} from '/notifications.js';
-import {renderTaskMap} from '/task-map.js';
+import {imageGallery, renderTaskMap} from '/task-map.js';
 import {createEvidenceCard} from '/research-evidence.js';
 const $ = s => document.querySelector(s);
 let noticeStorage = null;
@@ -967,6 +971,7 @@ function renderRunMap(s) {
       if (saved.kind !== 'text') throw new Error('The next-run prompt is not readable text.');
       await showStart(saved.content,s.workspace);
     },
+    imageUrl:path => '/api/task-image?' + new URLSearchParams({id:s.id, path}),
     readFile:path => api('/api/task-file?' + new URLSearchParams({id:s.id, path})),
     readErrors:() => api('/api/task-errors?' + new URLSearchParams({id:s.id})),
     createSummary:task_id => api('/api/task-summary', {id:s.id, task_id}),
@@ -1222,11 +1227,11 @@ async function showHome() {
   view = "home"; past = null; sel = null;
   $("#main").innerHTML = `<div class="home"><div class="home-inner">
       <div class="home-head"><h2>Home</h2><button class="btn primary" id="homeNew">New task</button></div>
-      <details class="home-taskmaps" open><summary>Task maps</summary>
-        <p>Open a saved run to inspect its tasks, summaries, outputs, and diagnostics. Opening a map does not start agents.</p>
+      <div id="homeImages"></div>
+      <details class="home-taskmaps" open><summary>Recent runs</summary>
         <div id="homeTaskMaps">Loading saved runs…</div></details>
       <div class="slot-home" id="slotHome"></div>
-      <p class="hint" id="homeEmpty" hidden>Your features show their panels here. Send feedback to add one, for example a list of your past sessions.</p>
+
     </div></div>`;
   $("#homeNew").onclick = () => showStart();
   renderHeader(null);
@@ -1234,20 +1239,25 @@ async function showHome() {
   api('/api/sessions').then(list => {
     if (!maps.isConnected) return;
     maps.replaceChildren();
+    const images = list.flatMap(item => (item.images || []).map(path => ({
+      path, project:item.project, url:'/api/task-image?' + new URLSearchParams({id:item.id,path})
+    }))).slice(0,6);
+    const gallery = imageGallery('Recent images', images);
+    if (gallery) $('#homeImages').append(gallery);
     for (const item of list) {
       const row = document.createElement('div'); row.className = 'home-taskmap';
       const copy = document.createElement('div'); const title = document.createElement('strong');
       title.textContent = item.title; const detail = document.createElement('span');
       detail.className = 'hint'; detail.textContent = [item.project, STATUS_WORD[item.status] || item.status].filter(Boolean).join(' · ');
       copy.append(title, detail);
-      const button = document.createElement('button'); button.className = 'btn'; button.textContent = 'Open task map';
+      const button = document.createElement('button'); button.className = 'btn'; button.textContent = 'Open run';
       button.onclick = () => openSavedRun(item.id, 'map').catch(error => toast(error.message));
       row.append(copy, button); maps.append(row);
     }
     if (!list.length) maps.textContent = 'Your task maps appear here after you start a task.';
   }).catch(() => { if (maps.isConnected) maps.textContent = 'Saved runs could not be loaded. Open a run from Sessions.'; });
   await window.DuoComponents?.renderSlot($("#slotHome"), "home", {});
-  if (!$("#slotHome")?.children.length) $("#homeEmpty").hidden = false;
+
 }
 async function showFeatures() {
   $("#app").classList.add("page-view");
@@ -1286,6 +1296,8 @@ async function openSavedRun(id, pane) {
   if (pane) setRunPane(pane);
   sel = null; rowCache.clear(); lastInsKey = ""; refresh(); loadSessions();
   restoreRunDraft();
+  $("#taskmap-pane")?.scrollTo({top:0});
+  window.scrollTo(0, 0);
   $("#timeline")?.scrollTo({top:0});
 }
 async function loadSessions() {
@@ -1596,10 +1608,24 @@ async function openSheet(kind) {
   $("#shClose").onclick = () => sh.close();
 }
 $("#sheet").addEventListener("close", () => { if (live?.personal?.new_changes?.length) api("/api/changes/seen", {}); });
+const narrowScreen = matchMedia('(max-width:760px)');
+function syncSessionsButton() {
+  const app = $('#app');
+  const open = narrowScreen.matches ? app.classList.contains('mobile-sessions') : !app.classList.contains('no-side');
+  $('#toggleSessions').setAttribute('aria-expanded', String(open));
+}
 $("#toggleSessions").onclick = () => {
-  const hidden = $("#app").classList.toggle("no-side");
-  $("#toggleSessions").setAttribute("aria-expanded", String(!hidden));
+  $('#app').classList.toggle(narrowScreen.matches ? 'mobile-sessions' : 'no-side');
+  syncSessionsButton();
 };
+narrowScreen.addEventListener('change', syncSessionsButton);
+syncSessionsButton();
+$('.side').addEventListener('click', event => {
+  if (narrowScreen.matches && event.target.closest('button:not(.sessdel)')) {
+    $('#app').classList.remove('mobile-sessions');
+    syncSessionsButton();
+  }
+});
 $("#toggleInspector").onclick = () => {
   const hidden = $("#app").classList.toggle("hide-details");
   $("#toggleInspector").setAttribute("aria-expanded", String(!hidden));
@@ -1749,7 +1775,7 @@ const es = new EventSource("/api/events");
 $("#newBtn").onclick = () => showStart();
 $("#homeBtn").onclick = () => go("home");
 $("#featuresBtn").onclick = () => go("features");
-$("#toggleSide").onclick = () => $("#app").classList.toggle("no-side");
+$("#toggleSide").onclick = () => $("#toggleSessions").click();
 document.addEventListener("keydown", ev => {
   if (ev.defaultPrevented || ev.isComposing || ev.ctrlKey || ev.metaKey || ev.altKey || isTextEditingTarget(ev.target) || isTextEditingTarget(document.activeElement)) return;
   if (ev.key === "f" && !$("#sheet").open) { ev.preventDefault(); openSheet("feedback"); return; }

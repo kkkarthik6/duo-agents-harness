@@ -11,14 +11,14 @@ from . import roleflow
 
 RECENT_TURNS = 3
 
-NAMES = {'lead': 'Planner', 'challenger': 'Plan reviewer', 'builder': 'Coder', 'critic': 'Code reviewer'}
+NAMES = {'lead': 'Planner', 'challenger': 'Plan reviewer', 'builder': 'Builder', 'critic': 'Reviewer'}
 TIER_RULE = {
     'large': 'You carry the judgment: resolve ambiguity, set the steps, and say what to check.',
     'medium': 'You check and decide; do not rebuild the work yourself.',
-    'small': 'Execute the plan literally, step by step. Do not redesign it. If a step is unclear or impossible, stop and report the blocker instead of guessing.',
+    'small': 'Follow the accepted plan and the user’s constraints.',
 }
 TASK = {
-    'exchange': 'Write the implementation plan: steps a small coder can follow literally, each with an output path and an observable check.',
+    'exchange': 'Write the implementation plan: steps the builder can follow, each with an output path and an observable check.',
     'plan_review': 'Review the plan. Quote what you object to. List every required correction now.',
     'build': 'Implement the accepted plan. Finish the whole output, run the relevant checks and report their real results.',
     'revise': 'Fix every required defect below, together, then re-run the affected checks.',
@@ -95,15 +95,13 @@ def quick_brief(state):
     asks = [e for e in state.get('entries', []) if e.get('kind') in ('task', 'followup')]
     out = ['# Quick task']
     if asks:
-        out.append('Ask: ' + _block(asks[0].get('prose')))
-        out += ['Follow-up: ' + _block(e.get('prose')) for e in asks[1:]]
-    notes = [_block(e.get('prose')) for e in state.get('entries', []) if e.get('author') == 'human' and e.get('kind') == 'message']
+        out.append('Ask: ' + asks[0]['prose'])
+        out += ['Follow-up: ' + e['prose'] for e in asks[1:]]
+    notes = [e['prose'] for e in state.get('entries', []) if e.get('author') == 'human' and e.get('kind') == 'message']
     notes = list(state.get('constraints') or []) + notes
     if notes:
         out.append('User constraints and messages (all still apply):')
         out += ['- ' + n for n in notes]
-    out.append('Do it in one pass, as you would alone: write the code, run its tests once with the project\'s Python, and reply with the files '
-               'and the real check results. Do not repeat checks across Python versions, and do not add files, docs or notes nobody asked for.')
     return '\n'.join(out) + '\n'
 
 
@@ -126,9 +124,8 @@ def brief(state, kind=None, rel='.duo', patch=None):
             out.append('Your handoff is read next by the %s (%s model, fresh session): it sees this brief, your reply and the files you name. '
                        'State what you did, the files, the checks with real results, and what is left.' % (rname, rtier or 'unrated'))
         task_now = ('A quick one-agent attempt did not finish. Plan the remaining work from what exists (the files and the last handoff below), '
-                    'in steps a small coder can follow literally. Do not redo what already works.'
-                    ) if kind == 'exchange' and state.get('escalated') else ('Do the task directly, as you would alone: make the change, run it or its tests to check it, and report the files and the real check results. '
-                    'There is no separate plan or reviewer.') if quick and kind == 'build' and not state.get('quick_review') else TASK.get(kind, 'Do the assigned work.')
+                    'in steps the builder can follow. Do not redo what already works.'
+                    ) if kind == 'exchange' and state.get('escalated') else TASK.get(kind, 'Do the assigned work.')
         out.append('Your task now: ' + task_now)
     else:
         out.append('# Run memory: %s' % _clip(state.get('title'), 120))
@@ -157,7 +154,7 @@ def brief(state, kind=None, rel='.duo', patch=None):
         out.append('Files changed in this run: ' + ', '.join(changed))
     last_build = next((e for e in reversed(state.get('entries', [])) if e.get('kind') in ('build', 'revise')), None)
     if last_build and kind != 'build':
-        out.append('Last coder handoff (%s): %s' % (os.path.normpath(rel + '/' + last_build['file']) if last_build.get('file') else 'saved reply',
+        out.append('Last builder handoff (%s): %s' % (os.path.normpath(rel + '/' + last_build['file']) if last_build.get('file') else 'saved reply',
                                                     _block(last_build.get('prose'))))
     if patch:
         out.append('Diff of the latest build: ' + patch)

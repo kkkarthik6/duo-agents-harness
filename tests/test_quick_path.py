@@ -118,7 +118,7 @@ class QuickBriefTests(unittest.TestCase):
 
     def test_the_brief_says_there_is_no_plan_and_no_reviewer(self):
         text = handoff.brief(self.state(), "build")
-        self.assertIn("Do it in one pass", text)
+        self.assertEqual(text, "# Quick task\nAsk: Fix the typo\n")
         self.assertIn("Fix the typo", text)
         self.assertNotIn("Plan:", text)
         self.assertNotIn("read next by", text)
@@ -131,7 +131,60 @@ class QuickBriefTests(unittest.TestCase):
         self.assertLess(len(text), 900)
         self.assertIn("keep it under 200 lines", text)
         self.assertIn("also support --shout", text)
-        self.assertIn("do not repeat checks", text.lower())
+        self.assertNotIn("Python", text)
+
+    def test_image_request_keeps_the_requested_format_and_adds_no_tool_instructions(self):
+        s = self.state()
+        ask = "Produce images that look like a modern nutrition tracking app.\nUse these labels exactly:\n  Daily total"
+        s["entries"][0]["prose"] = ask
+        self.assertEqual(handoff.brief(s, "build"), "# Quick task\nAsk: " + ask + "\n")
+
+    def test_nutrition_image_assignment_as_sent_to_the_worker(self):
+        from engine.agents import Agent
+        from engine.phases import Turn
+        from engine.session import Session
+
+        ask = "Produce reference images that look like a modern nutrition tracking app."
+        with tempfile.TemporaryDirectory() as folder, (
+            mock.patch.dict(config.CFG, root=folder, auto_trust=False, triage="auto")
+        ), mock.patch.object(config, "DUO_HOME", Path(folder)), mock.patch.object(Session, "launch"):
+            worker = Agent("codex", "Codex", "codex", "codex", "test")
+            run = Session.create(ask, [worker])
+            from engine import initial_planning, roleflow
+            self.assertEqual(run.st["size"], "standard")
+            with mock.patch.object(run, "_start_continuation_worker"), mock.patch("engine.session.threading.Thread") as thread:
+                def packet(kind, **kwargs):
+                    run.issue(Turn("codex", "frame" if kind in ("exchange", "plan_review") else "deep", kind), **kwargs)
+                    return thread.call_args.kwargs["args"][1]
+
+                first = packet("exchange")
+                self.assertIn(ask, first)
+                self.assertIn(initial_planning.VISUAL, first)
+                self.assertIn("acknowledge receipt", first)
+                prior = run.st["pending"].pop()
+                self.assertNotIn(initial_planning.BASE, prior["assignment_text"])
+                (run.dir / "plan.md").write_text("Produce the requested nutrition images.")
+                run.st["accepted_plan_signature"] = roleflow.plan_signature(run.dir / "plan.md")
+                for kind, kwargs in (("plan_review", {}), ("exchange", {"retry_of": prior}),
+                                     ("exchange", {}), ("build", {}), ("critique", {})):
+                    with self.subTest(kind=kind):
+                        later = packet(kind, **kwargs)
+                        self.assertNotIn(initial_planning.BASE, later)
+                        self.assertNotIn(initial_planning.VISUAL, later)
+                        run.st["pending"].pop()
+
+    def test_small_model_selects_only_known_profiles_and_falls_back_on_invalid_output(self):
+        from engine import initial_planning
+        from engine.agents import Agent
+        worker = Agent("codex", "Codex", "codex", "codex", "test", {"ready": True})
+        with mock.patch("engine.model_catalog.candidates", return_value=[{"cli":"codex","id":"small-test"}]) as models, (
+            mock.patch("engine.helper.run_cli", side_effect=[(True, '["app","markets"]'), (True, '{}')])
+        ) as call:
+            route = initial_planning.select("Design a stock dashboard", [worker])
+            self.assertEqual(route, {"profiles":["app","markets"],"source":"small-test"})
+            self.assertEqual(models.call_args.args[1], "small")
+            self.assertTrue(call.call_args.kwargs["read_only"])
+            self.assertEqual(initial_planning.select("How can my app make money?", [worker])["profiles"], ["monetization"])
 
     def test_with_quick_review_the_reader_is_named_again(self):
         self.assertIn("read next by", handoff.brief(self.state(quick_review=True), "build"))

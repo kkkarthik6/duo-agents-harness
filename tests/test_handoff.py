@@ -27,14 +27,14 @@ def state(entries, **kw):
 class TaskAndModelTests(unittest.TestCase):
     def test_the_coder_is_told_its_model_size_its_task_and_who_reads_it(self):
         text = handoff.brief(state([entry(2, "exchange"), entry(3, "plan_review", verdict="APPROVED")]), "build")
-        self.assertIn("Coder (small model, small-1)", text)
-        self.assertIn("Do not redesign", text)
+        self.assertIn("Builder (small model, small-1)", text)
+        self.assertIn("Follow the accepted plan", text)
         self.assertIn("Implement the accepted plan", text)
-        self.assertIn("Code reviewer (medium model", text)
+        self.assertIn("Reviewer (medium model", text)
 
     def test_the_reviewer_is_told_to_check_not_rebuild(self):
         text = handoff.brief(state([entry(2, "build")]), "critique", patch=".duo/r/review-changes/0004.patch")
-        self.assertIn("Code reviewer (medium model", text)
+        self.assertIn("Reviewer (medium model", text)
         self.assertIn("do not rebuild", text)
         self.assertIn(".duo/r/review-changes/0004.patch", text)
 

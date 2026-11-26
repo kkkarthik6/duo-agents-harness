@@ -22,6 +22,7 @@ from . import build_workflow as buildflow, research_workflow as researchflow
 from . import repeat_defect, loop_judge, jobs, delivery, model_policy, relay, task_output, broker, summary_agent, orchestration as orch
 from .tmux import capture, pane_dead, pane_env, send_key, send_text, split, tail_lines, tmux
 from .active_runtime import Counter
+from . import initial_planning
 from . import completion_summary
 from . import task_context
 from . import session_index
@@ -241,7 +242,7 @@ class Session:
     # --------------------------------------------------------------- creation
     @classmethod
     def create(cls, task, agents, project=None, project_name=None, workspace=None, mode=None,
-               task_type=None, max_rounds=None, approvals="auto", title=None, sandbox_on=False):
+               task_type=None, max_rounds=None, approvals="auto", title=None, sandbox_on=False, planning_route=None):
         if not agents:
             raise ValueError("No agent CLIs found. Install Claude Code, Codex or Antigravity.")
         incompatible = [a.id for a in agents if a.capability_check and not a.capability_check['ready']]
@@ -277,6 +278,9 @@ class Session:
             from . import model_discovery
             model_discovery.refresh(force=True, cwd=ws)
         size, why = triage.classify(task) if config.CFG.get("triage", "auto") == "auto" else ("standard", "triage is off")
+        route = planning_route or initial_planning.select(task, agents, task_type)
+        if route["profiles"] != ["direct"] or task_type == "research":
+            size, why = "standard", "Initial planning: " + ", ".join(route["profiles"])
         if size == "trivial" and len(agents) > 1:        # one agent does a quick task, so only that one is started
             probe = {"agents": [a.id for a in agents], "workspace": str(ws), "dynamic_models": dynamic_models, "roles": {}}
             agent_failures.seed(probe)
@@ -319,10 +323,9 @@ class Session:
                                 "cmd": (agentmod.boxed(a.id, a.cmd_auto) if sandbox_on else a.cmd_auto) if approvals == "auto" else a.cmd_manual}
                          for a in standby}
         st["codex_guard_since"] = time.time()
-        st.update(size=size, size_reason=why, quick_review=bool(config.CFG.get("quick_review", False)))
+        st.update(size=size, size_reason=why, initial_planning=route, quick_review=bool(config.CFG.get("quick_review", False)))
         if size == "trivial":
-            (d / "plan.md").write_text("# Quick task\n\n%s\n\nDo it directly: make the change, run it or its tests to check it, "
-                                       "and report the files and the real check results.\n" % task.strip())
+            (d / "plan.md").write_text("# Quick task\n\n%s\n" % task.strip())
             st.update(plan_verdict="APPROVED", stage_requests={}, task_type=ttype or "general",
                       accepted_plan_signature=roleflow.plan_signature(d / "plan.md"), chosen="O1",
                       options=[{"id": "O1", "title": "Direct approach", "detail": task.strip(), "proposer": "human",
@@ -931,10 +934,6 @@ class Session:
                 if not package:
                     parts.append("Advance the current goal, then the next ready goal. Follow the latest review within the accepted plan. If an item is blocked, finish independent goals. Report which items wait on it, "
                                  "who can unblock them, and what must change before retrying.")
-                parts.append("Python deps: use a project virtualenv, run bootstrap steps as separate commands, keep caches in the workspace. "
-                             "Fetch public models and datasets with native permissions and retry the current route; if access still fails, "
-                             "report blocker network_access with the host and exact error. Routine checks: 120 s timeout, logs saved. "
-                             "Long experiments are separate registered jobs: start once, record the job ID, keep working. Build first, polish later.")
             if turn.kind == "critique":
                 if patch:
                     parts.append("Start from the diff; open other files only when a requirement needs them.")
@@ -956,15 +955,12 @@ class Session:
         if building and goal_loop.enabled(s) and s.get("goal", {}).get("next_action"):
             parts.append(goal_loop.continuation(s))
         if building and s.get("size") != "trivial":
-            parts.append("Own the whole deliverable: read the accepted plan (%s) and all requirements, build components, integration and docs together, "
-                         "decide routine matters yourself, and keep going until the output is usable. For revisions fix every required critic finding "
-                         "together and note each resolution. Stop only when done or blocked, naming failed routes and remaining work." %
-                         os.path.normpath(self.rel + "/plan.md"))
+            parts.append("Use the accepted plan at %s." % os.path.normpath(self.rel + "/plan.md"))
         if building and s.get("task_type") == "research":
             parts.append(goal_loop.CREATIVITY)
-            parts.append("Deliver the assigned research artifacts from the accepted plan, including executable experiments when requested. Use source notes and primary sources. "
-                         "Produce the requested research output directly. "
-                         "Check bibliography format offline; check claims against source content separately. " + orch.ACCESS_CHECK)
+            parts.append("Deliver the research outputs in the accepted plan. " + orch.ACCESS_CHECK)
+        if turn.kind in task_output.REVIEW_KINDS and turn.kind not in ("plan_review", "critique"):
+            parts.append("Start your review with APPROVED or REVISE and give the evidence for your decision.")
         parts.append(orch.contract(task_id, ack, build=building))
         if s.get("size") != "trivial":
             parts.append(task_output.instructions(self.ws, outcome_dir))
@@ -1014,7 +1010,7 @@ class Session:
             p["first_issued"] = fix_of.get("first_issued", fix_of["issued_at"])
         s["pending"].append(p)
         p['role_assignment'] = roleflow.assignment(s, turn.kind, task_id)
-        if s.get("size") != "trivial":
+        if s.get("size") != "trivial" and turn.kind not in ('exchange', 'plan_review'):
             p['prompt'] += roleflow.instructions(p['role_assignment']['role'])
         if turn.kind == 'plan_review':
             p['plan_signature'] = roleflow.plan_signature(self.dir / 'plan.md')
@@ -1043,6 +1039,10 @@ class Session:
             p["prompt"] += assigned
         if turn.kind == "continuation_review":
             p["prompt"] = broker.recovery_prompt(self.dir, task_id) + broker.assign(self.dir, p, s.get("title", "Task"), s["task"], self.ws) + task_output.instructions(self.ws, outcome_dir) + orch.contract(task_id, p["ack"]) + "\nWrite your reply to `%s`." % (self.dir / fname).resolve()
+        route = s.get("initial_planning")
+        if turn.kind == "exchange" and route and not route.get("planner_task_id") and not (retry_of or fix_of):
+            p["prompt"] += "\n\n" + initial_planning.brief(route)
+            route["planner_task_id"] = task_id
         p["prompt"] = check_policy.RULES + "\n" + task_output.GUIDANCE + "\n\n" + p["prompt"]   # fixed text first, so CLIs can cache it
         if p.get("answer_due"):
             humans = [e["prose"] for e in s["entries"] if e["author"] == "human" and e["kind"] == "message"]
@@ -1407,6 +1407,7 @@ class Session:
         ste_v = []
         unparsed = any(x == "no duo block" or x.startswith("bad JSON") for x in reply.errors)
         b = [] if unparsed else bounds.check(reply, {"task": self.st["task"], "task_type": self.st.get("task_type"), "expected_phase": p["phase"], "changed_files": changed,
+                                 "plan_folder": os.path.relpath(p["outcome_dir"], self.ws) if p["kind"] == "exchange" and p.get("outcome_dir") else None,
                                  "handoff_log": [tuple(x) for x in self.st["handoff_log"]], "author": p["agent"]})
         return probs, ste_v, b
 
@@ -2548,6 +2549,9 @@ def list_sessions(all_projects=True):
                 st = json.loads(sp.read_text())
                 out.append({"id": st["id"], "title": st["title"], "created": st["created"], "status": st["status"],
                             "task_type": st.get("task_type"), "project": st.get("project"),
+                            "images": list(dict.fromkeys(path for entry in reversed(st["entries"])
+                                for path in (entry.get("outputs") or []) if isinstance(path, str)
+                                and Path(path).suffix.lower() in (".png", ".jpg", ".jpeg", ".webp", ".gif")))[:6],
                             "contribution": _latest_contribution(st), "entries": len(st["entries"])})
             except Exception:
                 pass

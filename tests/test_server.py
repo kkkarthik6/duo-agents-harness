@@ -1,4 +1,6 @@
 import json
+import tempfile
+from pathlib import Path
 import types
 import threading
 import unittest
@@ -32,6 +34,26 @@ class ServerTests(unittest.TestCase):
     @classmethod
     def tearDownClass(cls):
         cls.srv.shutdown()
+
+    def test_task_image_uses_run_workspace_and_validates_file_type(self):
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder) / "project"
+            root.mkdir()
+            png = b"\x89PNG\r\n\x1a\nfixture"
+            (root / "ref.png").write_bytes(png)
+            (root / "invalid.png").write_text("not an image")
+            (Path(folder) / "outside.png").write_bytes(png)
+            (root / "linked.png").symlink_to(Path(folder) / "outside.png")
+            with mock.patch.object(self.engine, "get_session", return_value=types.SimpleNamespace(ws=root)) as get:
+                url = "http://127.0.0.1:%d/api/task-image?id=sample&path=" % self.port
+                with urllib.request.urlopen(url + "ref.png") as response:
+                    self.assertEqual(response.headers["Content-Type"], "image/png")
+                    self.assertEqual(response.read(), png)
+                get.assert_called_with("sample")
+                for path in ("invalid.png", "missing.png", "../outside.png", "linked.png"):
+                    with self.subTest(path=path), self.assertRaises(urllib.error.HTTPError) as error:
+                        urllib.request.urlopen(url + path)
+                    self.assertEqual(error.exception.code, 404)
 
     def test_health(self):
         code, body = call(self.port, "/api/health")

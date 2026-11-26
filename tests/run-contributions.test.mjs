@@ -43,3 +43,30 @@ test('run map shows the latest outcome, earlier reviews and waiting dependencies
     delete globalThis.document;
   }
 });
+
+test('task images appear on their node and in the selected task details', () => {
+  const root = new Element();
+  const all = node => [node, ...node.children.flatMap(all)];
+  globalThis.document = {querySelector:() => ({}), createElement:tag => {
+    const el = new Element(); el.tag = tag; el.setAttribute = () => {}; return el;
+  }};
+  try {
+    const graph = {nodes:[{id:'art', title:'Reading list', outputs:[]},
+      {id:'text', title:'Notes', outputs:[{path:'notes.md'}]}]};
+    const options = {runId:'trial', imageUrl:path => '/api/task-image?' + new URLSearchParams({id:'trial', path})};
+    renderTaskMap(root, graph, options);
+    all(root).find(el => el.dataset.task === 'art').onclick();
+    assert.equal(all(root).filter(el => el.tag === 'img').length, 0);
+    graph.nodes[0].outputs.push({path:'draft #2.PNG'});
+    renderTaskMap(root, graph, options);
+    assert.equal(all(root).filter(el => el.tag === 'img').length, 2);
+    const preview = all(root.children[0]).find(el => el.tag === 'img');
+    assert.equal(preview.src, '/api/task-image?id=trial&path=draft+%232.PNG');
+    all(root).find(el => el.dataset.task === 'text').onclick();
+    assert.match(root.children[0].text(), /Images.*draft #2.PNG/s);
+    graph.nodes[0].outputs.push({path:'References/source.png'}, {path:'Proposed design/original.png'});
+    renderTaskMap(root, graph, options);
+    assert.match(root.children[0].text(), /Proposed design.*original.png/s);
+    assert.match(root.children[1].text(), /References.*source.png/s);
+  } finally { delete globalThis.document; }
+});

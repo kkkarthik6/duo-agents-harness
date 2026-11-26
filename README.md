@@ -75,6 +75,14 @@ Expand **Build review history** to compare cycles and open their evidence. Quick
 When a build package needs an external input, Duo can finish independent packages within the existing run budget.
 The task map shows which items must wait.
 
+For a UI reference task, ask Duo to create a PNG mockup. Open **Recent images** on Home, or see **Images** at the top of the run’s task map.
+Select an image to open it at full size. Previews support PNG, JPEG, WebP,
+and GIF files up to 24 MiB each.
+
+For a follow-up, name the saved project file, link, or product in the request. For example:
+“Build me an app like this: `references/reading-list.png`. Find a comparable reading list,
+explain what works and what you would change, and test adding a book.”
+
 Each handoff is a short brief generated from the run's state: the ask, constraints, open defects, changed
 files and who does what next. Older turns collapse to counts, so context stays small without losing work.
 

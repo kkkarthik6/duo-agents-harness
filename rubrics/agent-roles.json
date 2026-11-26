@@ -2,7 +2,7 @@
  "lead": {
   "name": "Planner",
   "tier": "large",
-  "instructions": "Inspect the task and relevant source. Find available skills and read selected instructions. Write an actionable plan for a small coding agent.",
+  "instructions": "Inspect the task and its inputs. Find available skills and read selected instructions. Write an actionable plan for the builder.",
   "checks": [
    "Every user requirement has an observable success check",
    "Relevant skills and their paths are recorded",
@@ -13,16 +13,16 @@
  "challenger": {
   "name": "Plan reviewer",
   "tier": "large",
-  "instructions": "Review independently. Check requirements, feasibility, skill choices and test coverage. Require every correction in one pass, quoting the plan. Do not rewrite product files.",
+  "instructions": "Review independently. Check requirements, feasibility, skill choices and whether the checks cover the requested work. Require every correction in one pass, quoting the plan. Do not rewrite product files.",
   "checks": [
    "All requirements are covered",
-   "Steps are feasible for the coding agent",
+   "Steps are feasible for the builder",
    "Risks and failure cases have checks",
    "Return APPROVED or REVISE with specific evidence"
   ]
  },
  "builder": {
-  "name": "Coder",
+  "name": "Builder",
   "tier": "small",
   "instructions": "Implement the accepted plan. Read selected skill instructions. Make focused changes and run relevant checks. Report actual results and unfinished work.",
   "checks": [
@@ -33,12 +33,12 @@
   ]
  },
  "critic": {
-  "name": "Code reviewer",
+  "name": "Reviewer",
   "tier": "medium",
-  "instructions": "Review in a fresh session; you did not write the code. Inspect changes, requirements and the actual check evidence. List every concrete defect in one pass. Do not approve unfinished requirements.",
+  "instructions": "Review in a fresh session; assess the delivered work independently. Inspect changes, requirements and the actual check evidence. List every concrete defect in one pass. Do not approve unfinished requirements.",
   "checks": [
    "Every requirement is met",
-   "Changed behavior and failure cases work",
+   "The output satisfies the acceptance checks",
    "Evidence applies to current files",
    "Return APPROVED or REVISE with specific required corrections"
   ]

@@ -32,21 +32,19 @@ def signature(text):
 
 def prompt(report, task_text):
     return ("You are the Feasibility checker before build. Inspect the accepted task and existing artifacts. "
-            "Do not redesign the plan or claim an experiment is complete. Run small real probes, not the full build. "
+            "Stay within the accepted plan. Run small real probes, not the full build. "
             "Check inputs, required metadata, model/tool availability, and expected full-run runtime. "
             "Include stable observed input identities or hashes in each detail. A new log timestamp is not a changed prerequisite. "
             "Distinguish downloaded files from evidence needed for a claim. Record observed throughput and a workload estimate when relevant. "
-            "If irrelevant, explain not_applicable. Do not infer undocumented model cutoffs. "
+            "If irrelevant, explain not_applicable. "
             "Map independent goals to separate packages. Group only work that must be delivered together. Put true prerequisites in depends. Use exact product file paths, dependencies, "
-            "a concrete delivered behavior, and an acceptance command or inspection. For empirical research, include an executable "
-            "experiment runner when requested, separate from dated evidence acquisition and scored experiments. "
-            "Keep required registration before scored experiments. Paper polish must not substitute for an experimental deliverable. "
+            "a concrete delivered behavior, and an acceptance command or inspection. "
             "A missing input blocks only packages that require it. Do not weaken acceptance requirements. "
             "Write the feasibility JSON to %s. Schema: " % report +
             '{"checks":[{"id":"runtime","category":"runtime","status":"passed|blocked|not_applicable",'
             '"detail":"observed result and estimate or reason","evidence":["relative/probe.log"]}],'
             '"packages":[{"id":"P1","title":"Build usable component","depends":[],"requires":["runtime"],'
-            '"kind":"implementation|document|data","deliverables":["src/runner.py"],'
+            '"kind":"implementation|document|data","deliverables":["relative/requested-output"],'
             '"behavior":"concrete capability delivered","acceptance":"focused command or inspection"}]}.'
             " Include all three check categories: inputs, metadata, runtime. Passed and blocked checks require nonempty saved evidence. "
             "For a passed runtime check, include estimated_seconds (positive number) and basis (measurement and workload calculation). "

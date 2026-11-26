@@ -9,6 +9,7 @@ const make = (tag, text, className) => {
   if (className) value.className = className;
   return value;
 };
+const isImage = output => /\.(?:png|jpe?g|gif|webp)$/i.test(output.path);
 const when = value => value ? new Date(typeof value === 'number' ? value * 1000 : value).toLocaleString() : 'No saved update';
 
 function styles() {
@@ -17,12 +18,35 @@ function styles() {
   link.href = new URL('./task-map.css', import.meta.url).href; document.head.append(link);
 }
 
+export function imageGallery(title, images) {
+  if (!images.length) return null;
+  styles();
+  const section = make('section', null, 'duo-image-gallery');
+  section.append(make('h2', title));
+  const grid = make('div', null, 'duo-image-grid');
+  for (const {path, url, project} of images) {
+    const link = make('a');
+    link.href = url; link.target = '_blank'; link.rel = 'noopener';
+    const name = path.split('/').pop();
+    link.title = 'Open full image · ' + path;
+    const image = make('img');
+    image.alt = ''; image.loading = 'lazy';
+    image.onerror = () => image.replaceWith(make('span', 'Preview unavailable'));
+    image.src = url;
+    link.append(image, make('strong', name));
+    if (project) link.append(make('small', project));
+    grid.append(link);
+  }
+  section.append(grid);
+  return section;
+}
+
 export function renderTaskMap(root, graph, options = {}) {
   if (!root) return;
   styles(); root.classList.add('duo-taskmap');
   let state = roots.get(root);
   if (!state || state.run !== options.runId) {
-    state = {run: options.runId, selected: null, open: new Set(['map','nodes','completion','contributions','goals']), files: new Map(), errors: null, errorsBusy: false};
+    state = {run: options.runId, selected: null, open: new Set(['map','nodes', ...(options.runStatus === 'running' ? ['goals','contributions'] : [])]), files: new Map(), errors: null, errorsBusy: false};
     roots.set(root, state);
   }
   const signature = JSON.stringify([graph, options.helper, options.runStatus, options.globalGoal, options.goalUpdates, options.currentGoal, options.contributions, options.packages, options.checks]);
@@ -81,10 +105,6 @@ export function renderTaskMap(root, graph, options = {}) {
     state.errorsBusy = false; redraw();
   }
   const panel = block('map', `Task map · ${nodes.length} task${nodes.length === 1 ? '' : 's'}`, body => {
-    const toolbar = make('div', null, 'taskmap-toolbar');
-    toolbar.append(make('p', 'Select a task to inspect its assignment, saved work, and continuation.', 'taskmap-hint'),
-      action('Collapse details', () => { state.open = new Set(['map']); state.selected = null; redraw(); }));
-    body.append(toolbar);
     if (options.globalGoal) {
       body.append(block('goals', 'Global goal and current assignment', content => {
         content.append(make('h4', 'Global goal'), make('p', options.globalGoal));
@@ -165,7 +185,17 @@ export function renderTaskMap(root, graph, options = {}) {
       const header = make('span', null, 'taskmap-node-top');
       header.append(make('span', labels[node.status] || node.status, 'taskmap-badge'),
         make('span', `${node.outputs?.length || 0} ${(node.outputs?.length || 0) === 1 ? 'file' : 'files'}`, 'taskmap-count'));
-      button.append(header, make('strong', node.id, 'taskmap-id'), make('span', node.title, 'taskmap-node-title'));
+      button.append(header, make('strong', node.title || node.id, 'taskmap-node-title'));
+      button.title = node.id;
+      const cover = node.outputs?.find(isImage);
+      if (cover && options.imageUrl) {
+        const thumb = make('img', null, 'taskmap-thumbnail');
+        thumb.alt = '';
+        thumb.loading = 'lazy';
+        thumb.onerror = () => thumb.remove();
+        thumb.src = options.imageUrl(cover.path);
+        button.append(thumb);
+      }
       if (node.current_role) button.append(make('span', node.current_role.replaceAll('_',' '), 'taskmap-hint'));
       if (node.parent) button.append(make('span', '↳ Continues ' + node.parent, 'taskmap-parent'));
       button.append(make('span', 'Updated ' + when(node.updated), 'taskmap-time'));
@@ -178,6 +208,9 @@ export function renderTaskMap(root, graph, options = {}) {
       const line = make('div', null, 'taskmap-toolbar');
       line.append(make('p', selected.title, 'taskmap-title'), action('Close task details', () => { state.selected = null; redraw(); }));
       inspector.append(line);
+      const entries = new Map();
+      for (const output of selected.inherited_outputs || []) entries.set(output.path, {...output, inherited:true});
+      for (const output of selected.outputs || []) entries.set(output.path, output);
       if (selected.parent) inspector.append(action('View parent ' + selected.parent, () => select(selected.parent)));
       if(selected.task_context) inspector.append(block('task-context','Goal, plan, progress, and results',content=>{
         const current=selected.task_context;
@@ -245,12 +278,15 @@ export function renderTaskMap(root, graph, options = {}) {
         }
       }));
       inspector.append(block('outputs', 'Saved outputs and reusable parent work', content => {
-        const entries = new Map();
-        for (const output of selected.inherited_outputs || []) entries.set(output.path, {...output, inherited:true});
-        for (const output of selected.outputs || []) entries.set(output.path, output);
         if (!entries.size) content.append(make('p', 'No product files have been recorded yet.', 'taskmap-hint'));
         for (const output of entries.values()) {
-          file(content, output.path);
+          if (isImage(output) && options.imageUrl) {
+            const link = make('a', output.path, 'taskmap-action');
+            link.href = options.imageUrl(output.path);
+            link.target = '_blank';
+            link.rel = 'noopener';
+            content.append(link);
+          } else file(content, output.path);
           content.append(make('p', `${output.inherited ? 'From parent · ' : ''}${output.state || 'Saved'}${output.current?.sha256 && output.current.sha256 !== output.sha256 ? ' · Changed since the recorded version' : ''}`, 'taskmap-hint'));
           if (output.sha256) content.append(block('hash:' + output.path, 'Recorded file version', sub => sub.append(pre(output.sha256))));
         }
@@ -308,5 +344,15 @@ export function renderTaskMap(root, graph, options = {}) {
       }));
     }));
   });
-  root.replaceChildren(panel);
+  const paths = new Set(nodes.flatMap(node => [...(node.outputs || []), ...(node.inherited_outputs || [])]
+    .filter(isImage).map(output => output.path)));
+  const groups = new Map();
+  if (options.imageUrl) for (const path of paths) {
+    const folders = path.split('/').slice(0,-1);
+    const title = folders.includes('Proposed design') ? 'Proposed design' : folders.includes('References') ? 'References' : 'Images';
+    if (!groups.has(title)) groups.set(title, []);
+    groups.get(title).push({path, url:options.imageUrl(path)});
+  }
+  root.replaceChildren(...['Proposed design','References','Images'].filter(title => groups.has(title))
+    .map(title => imageGallery(title, groups.get(title))), panel);
 }

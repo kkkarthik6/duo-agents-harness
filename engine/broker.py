@@ -577,12 +577,38 @@ def job_update(run_dir, job_id, task_id, status, reference):
     return row
 
 
-def read_output(root, value):
-    """Read a project file for the local inspector; native tools are unaffected."""
+def _project_file(root, value):
     root = Path(root).resolve()
     path = (root / value).resolve()
     if not path.is_relative_to(root) or not path.is_file():
         raise ValueError("This task file is unavailable in the project.")
+    return path
+
+
+def read_image(root, value):
+    path = _project_file(root, value)
+    types = {".png": "image/png", ".jpg": "image/jpeg", ".jpeg": "image/jpeg",
+             ".webp": "image/webp", ".gif": "image/gif"}
+    mime = types.get(path.suffix.lower())
+    if not mime:
+        raise ValueError("Unsupported image format.")
+    limit = 24 * 1024 * 1024
+    with path.open("rb") as stream:
+        if os.fstat(stream.fileno()).st_size > limit:
+            raise ValueError("This image exceeds the 24 MiB preview limit.")
+        data = stream.read(limit + 1)
+    signatures = {"image/png": data.startswith(b"\x89PNG\r\n\x1a\n"),
+                  "image/jpeg": data.startswith(b"\xff\xd8\xff"),
+                  "image/gif": data.startswith((b"GIF87a", b"GIF89a")),
+                  "image/webp": data.startswith(b"RIFF") and data[8:12] == b"WEBP"}
+    if len(data) > limit or not signatures[mime]:
+        raise ValueError("This file is unavailable as an image preview.")
+    return data, mime
+
+
+def read_output(root, value):
+    """Read a project file for the local inspector; native tools are unaffected."""
+    path = _project_file(root, value)
     data = path.read_bytes()
     if b"\0" in data:
         return {"path": str(path), "kind": "binary", "size": len(data)}

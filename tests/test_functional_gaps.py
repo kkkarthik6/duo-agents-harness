@@ -66,6 +66,11 @@ class UnfinishedWorkTests(unittest.TestCase):
                      "Unfinished work: none. Blockers: none."):
             self.assertTrue(self.complete("Built it.\n\n" + line + "\nChecks passed."), line)
 
+    def test_required_browser_checks_without_a_result_keep_the_build_open(self):
+        self.assertFalse(self.complete("Browser timed out. Both checks remain unverified."))
+        self.assertTrue(self.complete("After a timeout, both checks passed on retry."))
+        self.assertTrue(self.complete("Optional tests remain unverified."))
+
     def test_real_remaining_work_still_marks_the_build_unfinished(self):
         for line in ("Unfinished work: the CLI flag is not wired", "Work remains in parser.py", "Incomplete: no tests for empty files",
                      "Remaining work: add docs", "Blocked: the dataset download fails"):

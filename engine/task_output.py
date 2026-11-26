@@ -16,7 +16,7 @@ from pathlib import Path
 from . import protocol
 
 
-GUIDANCE = """Reply in plain text or Markdown at the reply path: saved output paths, unfinished work, actual blockers. Reviewers start with APPROVED or REVISE on its own line, then every required fix, one per line as `file: problem -> fix`. Saving a handoff submits work; it does not approve it. Read the previous handoff and the files it names first."""
+GUIDANCE = "In the reply, identify the delivered outputs and any unfinished work or blockers."
 
 
 def filename(task_id, number, actor, suffix=""):
@@ -113,8 +113,8 @@ def task_directory(root, title, run_id, task_id):
 
 def instructions(root, folder):
     rel = Path(folder).relative_to(root).as_posix()
-    return ("Outcome folder: `" + rel + "` (read earlier outcomes there). Save new deliverables, source captures and handoff "
-            "notes in it, list their paths in your handoff, keep project source in place, and never overwrite user files.")
+    return ("Outcome folder: `" + rel + "` (read earlier outcomes there). Save requested deliverables "
+            "in it, list their paths in your handoff, keep project source in place, and never overwrite user files.")
 
 
 def relative_file(session_dir, folder, task_id, number, actor, suffix=""):
@@ -251,7 +251,9 @@ def _unfinished(plain):
         line = plain[match.start():plain.find("\n", match.start()) if plain.find("\n", match.start()) != -1 else len(plain)].strip()
         if not NOTHING.match(line):
             return match
-    return None
+    # A worker can finish the files while its required browser checks still have no result.
+    return re.search(r"(?im)(?:^|(?<=[.!?])\s+)(?:both |the |all |required )?(?:checks|tests) "
+                     r"(?:remain|are still) unverified(?:[.!](?=\s|$)|[ \t]*$)", plain)
 
 
 def parse(text, assignment, root=None, changed=()):

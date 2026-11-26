@@ -15,7 +15,7 @@ from . import clone_agent, coremgr, extensions, features, feedback as feedback_m
 from .tmux import capture, send_key, send_text, tmux
 from .run_pool import RunPool
 from . import workers, session_index
-from . import project_handoff
+from . import initial_planning, project_handoff
 
 WEB = config.APP_DIR / "web" / "index.html"
 code_id = config.code_id
@@ -251,6 +251,9 @@ class Engine(RunPool):
 
     def start(self, b):
         self.refresh_agents(force=True)
+        task = str(b.get("task", "")).strip() or _fail("Write a task first.")
+        chosen = [a for a in self.agents if not b.get("agents") or a.id in b["agents"]]
+        route = initial_planning.select(task, chosen[:3], b.get("task_type"))
         with session.LOCK:
             if b.get('project'):
                 workspace = config.root() / b['project']
@@ -259,7 +262,6 @@ class Engine(RunPool):
             else:
                 workspace = trust.unique_project_dir(b.get('project_name') or session.slugify(b.get('task', ''), 40))
             self.ensure_room(workspace)
-            chosen = [a for a in self.agents if not b.get("agents") or a.id in b["agents"]]
             mode = b.get("sandbox") or config.CFG.get("sandbox", "auto")
             box = False
             if mode == "on":
@@ -269,7 +271,7 @@ class Engine(RunPool):
                 elif mode == "on":
                     raise ValueError(msg)
             self.session = session.Session.create(
-                str(b.get("task", "")).strip() or _fail("Write a task first."), chosen,
+                task, chosen, planning_route=route,
                 project=b.get("project") or None, project_name=b.get("project_name") or None,
                 workspace=b.get("workspace") or None, mode=b.get("mode") or None,
                 task_type=b.get("task_type") or None, max_rounds=b.get("max_rounds") or None,
@@ -315,6 +317,9 @@ def make_server(port, engine):
             self.send_header("Content-Type", ctype)
             self.send_header("Content-Length", str(len(data)))
             self.send_header("Cache-Control", "no-store")
+            if ctype.startswith("image/"):
+                self.send_header("X-Content-Type-Options", "nosniff")
+                self.send_header("Cross-Origin-Resource-Policy", "same-origin")
             self.end_headers()
             self.wfile.write(data)
 
@@ -424,7 +429,7 @@ def make_server(port, engine):
                     self._send(200,project_handoff.public(project_handoff.select(folder)))
                 elif u.path == "/api/sessions":
                     self._send(200, session.list_sessions())
-                elif u.path in ("/api/task-errors", "/api/task-file"):
+                elif u.path in ("/api/task-errors", "/api/task-file", "/api/task-image"):
                     sid = q.get("id", [""])[0]
                     target = engine.get_session(sid)
                     if not target:
@@ -433,8 +438,12 @@ def make_server(port, engine):
                         self._send(200, {"errors": broker.errors(target.dir, q.get("task", [None])[0])})
                     else:
                         try:
-                            self._send(200, broker.read_output(target.ws, q.get("path", [""])[0]))
-                        except ValueError as error:
+                            path = q.get("path", [""])[0]
+                            if u.path == "/api/task-image":
+                                self._send(200, *broker.read_image(target.ws, path))
+                            else:
+                                self._send(200, broker.read_output(target.ws, path))
+                        except (OSError, ValueError) as error:
                             self._send(404, {"error": str(error)})
                 elif u.path == "/api/session":
                     sid = q.get('id', [''])[0]

@@ -18,11 +18,13 @@ RESEARCH_SOURCE_DIRS = ("research/sources/", "research/searches/")
 RESEARCH_DOCUMENT_SUFFIXES = {".md", ".txt", ".json", ".jsonl", ".log", ".html", ".pdf", ".csv", ".bib", ".ris", ".xml", ".png", ".jpg", ".jpeg", ".webp", ".tex", ".zip", ".gz"}
 
 
-def _outside_scope(path, phase, task_type=None):
+def _outside_scope(path, phase, task_type=None, plan_folder=None):
     parts = PurePosixPath(path).parts
     if ".." in parts or PurePosixPath(path).is_absolute():
         return True
     if phase in PRE_DECIDE:
+        if plan_folder and PurePosixPath(path).is_relative_to(plan_folder):
+            return False
         return not (parts and parts[0] == ".duo")
     if phase == "scout":
         if task_type == "research" and (path in RESEARCH_SCOUT_FILES or
@@ -38,7 +40,7 @@ def check(reply, ctx):
         out.append("wrong phase: expected %s" % ctx["expected_phase"])
     if ctx.get("author") in ("claude", "codex"):
         return out
-    bad = [p for p in ctx.get("changed_files", []) if _outside_scope(p, ctx["expected_phase"], ctx.get("task_type"))]
+    bad = [p for p in ctx.get("changed_files", []) if _outside_scope(p, ctx["expected_phase"], ctx.get("task_type"), ctx.get("plan_folder"))]
     if bad:
         out.append(("files outside research assignment: %s" if ctx.get("task_type") == "research" and ctx["expected_phase"] == "scout" else "files changed before decide: %s") % ", ".join(bad))
     task = _norm(ctx["task"])
