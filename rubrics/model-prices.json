@@ -1,0 +1,6 @@
+{
+  "_note": "USD per million tokens. Used only when a CLI does not report its own cost (Claude does; Codex reports tokens only). Edit freely; a model missing here shows no cost. Sources: OpenAI pricing pages and third-party summaries, Nov 2026; confirm before relying on the lower tiers.",
+  "gpt-6-astra": {"input": 10.0, "cached_input": 1.0, "output": 50.0},
+  "gpt-6.1-sol": {"input": 2.0, "cached_input": 0.10, "output": 10.0, "note": "cached rate unverified"},
+  "gpt-6-luna": {"input": 0.10, "cached_input": 0.01, "output": 0.50, "note": "unverified"}
+}

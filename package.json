@@ -1,6 +1,6 @@
 {
   "name": "duo-agents",
-  "version": "1.19.9",
+  "version": "1.19.10",
   "description": "Duo: plan, review, build and review again across your Claude, Codex and Antigravity CLIs.",
   "bin": {
     "duo-agents": "npm/cli.js"

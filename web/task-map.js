@@ -10,6 +10,9 @@ const make = (tag, text, className) => {
   return value;
 };
 const isImage = output => /\.(?:png|jpe?g|gif|webp)$/i.test(output.path);
+export const money = usd => usd > 0 ? (usd < 0.01 ? '~<$0.01' : '~$' + usd.toFixed(2)) : '';
+const costTitle = cost => cost ? `Approximate cost of ${cost.calls} agent call${cost.calls === 1 ? '' : 's'}` +
+  (cost.unpriced ? ` (${cost.unpriced} could not be priced)` : '') : '';
 const when = value => value ? new Date(typeof value === 'number' ? value * 1000 : value).toLocaleString() : 'No saved update';
 
 function styles() {
@@ -57,6 +60,7 @@ export function renderTaskMap(root, graph, options = {}) {
   }
   state.graph = graph || {nodes:[], progress:[]}; state.options = options;
   const nodes = state.graph.nodes || [];
+  const runCost = nodes.reduce((sum, node) => sum + (node.cost?.usd || 0), 0);
   if (!nodes.some(n => n.id === state.selected)) state.selected = null;
   const redraw = () => { state.dirty = true; renderTaskMap(root, state.graph, state.options); };
   const block = (id, title, build) => {
@@ -104,7 +108,7 @@ export function renderTaskMap(root, graph, options = {}) {
     catch (error) { state.diagnosticError = error.message; }
     state.errorsBusy = false; redraw();
   }
-  const panel = block('map', `Task map · ${nodes.length} task${nodes.length === 1 ? '' : 's'}`, body => {
+  const panel = block('map', `Task map · ${nodes.length} task${nodes.length === 1 ? '' : 's'}` + (money(runCost) ? ' · ' + money(runCost) : ''), body => {
     if (options.globalGoal) {
       body.append(block('goals', 'Global goal and current assignment', content => {
         content.append(make('h4', 'Global goal'), make('p', options.globalGoal));
@@ -185,6 +189,9 @@ export function renderTaskMap(root, graph, options = {}) {
       const header = make('span', null, 'taskmap-node-top');
       header.append(make('span', labels[node.status] || node.status, 'taskmap-badge'),
         make('span', `${node.outputs?.length || 0} ${(node.outputs?.length || 0) === 1 ? 'file' : 'files'}`, 'taskmap-count'));
+      if (money(node.cost?.usd)) {
+        const price = make('span', money(node.cost.usd), 'taskmap-count taskmap-cost'); price.title = costTitle(node.cost); header.append(price);
+      }
       button.append(header, make('strong', node.title || node.id, 'taskmap-node-title'));
       button.title = node.id;
       const cover = node.outputs?.find(isImage);

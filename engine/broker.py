@@ -90,6 +90,15 @@ def view(run_dir):
                 item["outputs"] = row.get("outputs", [])
             elif kind == "progress":
                 progress.append(row)
+            elif kind == "usage":
+                spent = item.setdefault("cost", {"usd": 0.0, "calls": 0, "unpriced": 0, "input_tokens": 0, "output_tokens": 0})
+                spent["calls"] += 1
+                spent["input_tokens"] += row.get("input_tokens") or 0
+                spent["output_tokens"] += row.get("output_tokens") or 0
+                if row.get("usd") is None:
+                    spent["unpriced"] += 1
+                else:
+                    spent["usd"] += row["usd"]
             elif kind == "task_status":
                 item["status"] = row["status"]
             elif kind == "error_recorded":

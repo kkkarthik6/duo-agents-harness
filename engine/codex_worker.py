@@ -11,7 +11,7 @@ from pathlib import Path
 
 if __package__ in (None, ""):
     sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
-from engine import network_policy, broker, cli_adapters, agent_failures
+from engine import network_policy, broker, cli_adapters, agent_failures, cost
 
 MAX_CONTEXT = 120_000
 
@@ -35,6 +35,7 @@ class Worker:
             clean.append(word); index += 1
         self.command = clean
         self.usage = {}
+        self.seen_model = None
         self.failed = False
         self.broker_task = None
 
@@ -66,6 +67,19 @@ class Worker:
             except (OSError, ValueError) as failure:
                 print("Broker diagnostic recording failed; native work continues: " + str(failure), file=sys.stderr, flush=True)
 
+    def record_usage(self):
+        """Attach this call's tokens and approximate cost to its task card. Never blocks the work."""
+        if not self.broker_task or not self.usage:
+            return
+        model = self.seen_model or self.model
+        priced = cost.usage_cost(model, self.usage)
+        try:
+            broker.event(self.broker_task["run_dir"], "usage", self.broker_task["task_id"], model=model,
+                         usd=priced and priced["usd"], source=priced and priced["source"],
+                         input_tokens=self.usage.get("input_tokens", 0), output_tokens=self.usage.get("output_tokens", 0))
+        except (OSError, ValueError) as failure:
+            print("Usage recording failed; native work continues: " + str(failure), file=sys.stderr, flush=True)
+
     def argv(self, prompt=None):
         return self.adapter.argv(self.command, self.model, prompt)
 
@@ -90,6 +104,8 @@ class Worker:
 
     def event(self, event, replies):
         for operation, value in self.adapter.events(event):
+            if operation == 'model' and value:
+                self.seen_model = value
             if operation == 'model' and value and self.model:
                 matches = value.startswith(self.model) or (self.model in ('opus', 'sonnet', 'haiku') and self.model in value)
                 if not matches:
@@ -112,6 +128,7 @@ class Worker:
     def turn(self, prompt):
         print("Working on assignment...", flush=True)
         self.failed = False
+        self.usage = {}
         self.configure_broker(prompt)
         replies = []
         payload = self.context(prompt)
@@ -149,6 +166,7 @@ class Worker:
             code = child.wait()
             if reader:
                 reader.join(timeout=1)
+            self.record_usage()
             if code == 0 and not replies:
                 self.failure({'message': 'The agent returned no task response'})
             if self.failed:

@@ -82,7 +82,7 @@ class Adapter:
                 if event.get('is_error'):
                     yield 'failure', event
                 else:
-                    yield 'usage', event.get('usage', {})
+                    yield 'usage', dict(event.get('usage', {}), total_cost_usd=event.get('total_cost_usd'))
                     yield 'text', event.get('result', '')
         elif self.protocol == 'codex':
             if kind == 'item.completed':
