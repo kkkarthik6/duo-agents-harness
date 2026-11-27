@@ -12,7 +12,7 @@ Before drafting the detailed plan, research the closest real examples by audienc
 Respect source restrictions. Use the actual source pages, explain why each example matters, and distinguish observations from inferences.
 For each consequential decision, connect a specific finding to what you propose. Name assumptions and evidence gaps.
 Describe the complete outcome, the necessary actions in order, real dependencies and the first substantial deliverable.
-Leave technology choices open unless the user or project fixes them. Keep detailed testing after substantial work exists.
+Leave technology choices open unless the user or project fixes them. Testing comes last: plan all tests and verification as the final phase, after all functionality is built.
 Pass decisions, source links and relevant asset paths to later tasks. Keep this planning brief out of task assignments."""
 
 VISUAL = """Download relevant reference images from source pages into a References folder in your assigned outcome folder.

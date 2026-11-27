@@ -7,7 +7,7 @@ Nothing the next agent needs is cut: the ask, constraints, messages, open defect
 handoff go in full. Only turns older than the last few collapse to counts, since their files stay on disk."""
 import os
 
-from . import roleflow
+from . import build_order, roleflow
 
 RECENT_TURNS = 3
 
@@ -18,9 +18,9 @@ TIER_RULE = {
     'small': 'Follow the accepted plan and the user’s constraints.',
 }
 TASK = {
-    'exchange': 'Write the implementation plan: steps the builder can follow, each with an output path and an observable check.',
+    'exchange': 'Write the exact implementation plan: numbered requirements with sub-requirements, files and ordered steps for each, delegation, and a final ## Builder prompt for the programming agent. ' + build_order.TEST_LAST,
     'plan_review': 'Review the plan. Quote what you object to. List every required correction now.',
-    'build': 'Implement the accepted plan. Finish the whole output, run the relevant checks and report their real results.',
+    'build': 'Implement the accepted plan: every requirement, following its ## Builder prompt. ' + build_order.TEST_LAST_SHORT + ' Then run the relevant checks once and report their real results.',
     'revise': 'Fix every required defect below, together, then re-run the affected checks.',
     'critique': 'Review the build against the plan, the requirements and the saved check evidence. List every defect at once.',
     'verify': 'Verify the requested output against every requirement.',

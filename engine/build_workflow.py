@@ -5,6 +5,8 @@ import re
 import math
 from pathlib import Path
 
+from . import build_order
+
 INTEGRATION_ID = "duo-integration"
 PACKAGE_FIELDS = {"id", "title", "depends", "requires", "kind", "deliverables", "behavior", "acceptance"}
 CATEGORIES = {"inputs", "metadata", "runtime"}
@@ -38,7 +40,7 @@ def prompt(report, task_text):
             "Distinguish downloaded files from evidence needed for a claim. Record observed throughput and a workload estimate when relevant. "
             "If irrelevant, explain not_applicable. "
             "Map independent goals to separate packages. Group only work that must be delivered together. Put true prerequisites in depends. Use exact product file paths, dependencies, "
-            "a concrete delivered behavior, and an acceptance command or inspection. "
+            "a concrete delivered behavior, and an acceptance command or inspection to run only in the final verification phase. " + build_order.TEST_LAST + " "
             "A missing input blocks only packages that require it. Do not weaken acceptance requirements. "
             "Write the feasibility JSON to %s. Schema: " % report +
             '{"checks":[{"id":"runtime","category":"runtime","status":"passed|blocked|not_applicable",'
@@ -200,7 +202,7 @@ def package_prompt(package):
             "or unrelated paper edits. Preserve registration and evidence requirements. "
             "Return build_evidence with behavior (what now works). Include supporting evidence when relevant. "
             "Every useful build must change an assigned product deliverable. "
-            "Set complete true only when all package deliverables and acceptance requirements are met. "
+            "Set complete true when every package deliverable is implemented; acceptance checks run later, in the final verification phase. " + build_order.TEST_LAST_SHORT + " "
             "If blocked, return blocker_detail with missing, attempts, affected, alternatives, and retry_when. "
             "attempts must list saved evidence paths. Save partial implementation before returning. "
             "Duo will continue independent packages and retain this package's exact blocker.")

@@ -1,46 +1,52 @@
 {
- "lead": {
-  "name": "Planner",
-  "tier": "large",
-  "instructions": "Inspect the task and its inputs. Find available skills and read selected instructions. Write an actionable plan for the builder.",
-  "checks": [
-   "Every user requirement has an observable success check",
-   "Relevant skills and their paths are recorded",
-   "Steps name concrete outputs and dependencies",
-   "Missing inputs and material risks are explicit"
-  ]
- },
- "challenger": {
-  "name": "Plan reviewer",
-  "tier": "large",
-  "instructions": "Review independently. Check requirements, feasibility, skill choices and whether the checks cover the requested work. Require every correction in one pass, quoting the plan. Do not rewrite product files.",
-  "checks": [
-   "All requirements are covered",
-   "Steps are feasible for the builder",
-   "Risks and failure cases have checks",
-   "Return APPROVED or REVISE with specific evidence"
-  ]
- },
- "builder": {
-  "name": "Builder",
-  "tier": "small",
-  "instructions": "Implement the accepted plan. Read selected skill instructions. Make focused changes and run relevant checks. Report actual results and unfinished work.",
-  "checks": [
-   "Changes match the accepted plan",
-   "Required outputs exist",
-   "Relevant checks have actual results",
-   "Unfinished work and blockers are stated accurately"
-  ]
- },
- "critic": {
-  "name": "Reviewer",
-  "tier": "medium",
-  "instructions": "Review in a fresh session; assess the delivered work independently. Inspect changes, requirements and the actual check evidence. List every concrete defect in one pass. Do not approve unfinished requirements.",
-  "checks": [
-   "Every requirement is met",
-   "The output satisfies the acceptance checks",
-   "Evidence applies to current files",
-   "Return APPROVED or REVISE with specific required corrections"
-  ]
- }
+  "lead": {
+    "name": "Planner",
+    "tier": "large",
+    "instructions": "Inspect the task, its inputs and the existing product. Find available skills and read selected instructions. Write an exact implementation plan, not a summary, in this order. 1) Requirements: a numbered list (R1, R2) with sub-requirements (R1.1, R1.2). Each states the observable behavior it adds. 2) Implementation: for each sub-requirement, the files to create or change, the interfaces and data involved, and the ordered steps. Say which items depend on others and which are independent. 3) Delegation: assign each group of requirement IDs to an agent or role, and name the work that can proceed in parallel. 4) Final section '## Builder prompt': a self-contained prompt for the programming agent with the goal, context, requirement IDs, files, order of work, constraints and definition of done. Every build turn follows it. 5) Testing and verification: a final phase scheduled after all functionality is built. Testing comes last. Do not write or run tests, browser checks, screenshots, accessibility measurements or any other verification until all functionality in the plan is implemented. Before that point run only the compile, syntax or startup check needed to keep editing. Verification is one final phase after all functionality exists. If verification is blocked, record the blocker and keep building. Do not stall on it.",
+    "checks": [
+      "Requirements are numbered with sub-requirements, each with an observable success check",
+      "Every sub-requirement names files, interfaces and ordered steps",
+      "Work is delegated by requirement ID and parallel work is identified",
+      "The plan ends with a self-contained '## Builder prompt' section",
+      "Testing and verification are explicitly the final phase, after all functionality",
+      "Relevant skills and their paths are recorded",
+      "Missing inputs and material risks are explicit"
+    ]
+  },
+  "challenger": {
+    "name": "Plan reviewer",
+    "tier": "large",
+    "instructions": "Review independently. Check requirements, feasibility, skill choices and whether the checks cover the requested work. Require every correction in one pass, quoting the plan. Do not rewrite product files.",
+    "checks": [
+      "All requirements are covered",
+      "Steps are feasible for the builder",
+      "The Builder prompt is complete and the plan schedules no verification before the functionality",
+      "Risks and failure cases have checks",
+      "Return APPROVED or REVISE with specific evidence"
+    ]
+  },
+  "builder": {
+    "name": "Builder",
+    "tier": "small",
+    "instructions": "Implement the accepted plan by following its '## Builder prompt'. Build the largest planned product change first and finish every requirement before any testing. Testing comes last. Do not write or run tests, browser checks, screenshots, accessibility measurements or any other verification until all functionality in the plan is implemented. Before that point run only the compile, syntax or startup check needed to keep editing. Verification is one final phase after all functionality exists. If verification is blocked, record the blocker and keep building. Do not stall on it. Then run the relevant checks once. Report actual results and unfinished work.",
+    "checks": [
+      "Product code for the planned functionality exists before any test code",
+      "No verification ran before all functionality was implemented",
+      "Changes match the accepted plan",
+      "Required outputs exist",
+      "Relevant checks have actual results",
+      "Unfinished work and blockers are stated accurately"
+    ]
+  },
+  "critic": {
+    "name": "Reviewer",
+    "tier": "medium",
+    "instructions": "Review in a fresh session; assess the delivered work independently. Inspect changes, requirements and the actual check evidence. List every concrete defect in one pass. Do not approve unfinished requirements.",
+    "checks": [
+      "Every requirement is met",
+      "The output satisfies the acceptance checks",
+      "Evidence applies to current files",
+      "Return APPROVED or REVISE with specific required corrections"
+    ]
+  }
 }

@@ -36,7 +36,7 @@ class PlanByPathTests(unittest.TestCase):
     def test_the_review_prompt_points_to_the_plan_instead_of_pasting_it(self):
         text = roleflow.review_prompt("TASK", ".duo/r/plan.md")
         self.assertIn(".duo/r/plan.md", text)
-        self.assertLess(len(text), 1800)
+        self.assertLess(len(text), 2600)
 
 
 class ReviewerTests(unittest.TestCase):

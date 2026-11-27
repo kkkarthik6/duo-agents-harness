@@ -3,7 +3,7 @@ import hashlib
 import json
 from pathlib import Path
 
-from . import completion_summary
+from . import build_order, completion_summary
 
 
 def enabled(state):
@@ -389,7 +389,7 @@ def assignment_prompt(state):
     return ('You are the Cycle assignment planner. Read the independent assessments below. '
             'Resolve disagreements using the goal and evidence. Write one substantial build assignment with '
             'full requirements, selected method, alternative rejected and why, output paths, existing job identities, '
-            'success checks and failure tests. Preserve earlier valid results. Do not build yet. '
+            'success checks and failure tests. Preserve earlier valid results. Do not build yet. ' + build_order.TEST_LAST + ' '
             'Return the full assignment in your reply.\n\n' + goal['assessment_input'] +
             '\n\n# Independent assessments\n\n' + '\n\n'.join(goal['assessments'].values()))
 

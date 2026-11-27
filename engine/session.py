@@ -45,7 +45,7 @@ LOGIN_HINTS = ("please log in", "please sign in", "run /login", "sign in with ch
 INSTRUCTIONS = {"cycle_summary": "Write the detailed cycle summary.", "goal_assess": "Assess the unfinished goal independently.", "goal_assign": "Plan substantial further work from both assessments.", "goal_check": "Assess the whole user goal using the saved goal input.", "continuation_review": "Review the previous task and define the remaining work.", 'research_expand': 'Expand the research coverage and derive a method that addresses a specific drawback.',
  'research_check': 'Independently challenge research coverage, full-paper reading, relevance, and the proposed method.',
  'feasibility': 'Check feasibility before build and save the build work packages.', 'frame': 'Restate the task. Set task_type. Write measurable acceptance requirements and constraints.',
- 'build': 'Build the accepted plan. Finish the output before review.',
+ 'build': 'Build the accepted plan, following its ## Builder prompt. Testing comes last: no tests or verification until all functionality is implemented. Finish the output before review.',
  'revise': 'Resolve every required defect together and reuse valid checks.',
  'critique': 'Review the completed output against the task requirements and saved evidence, using the assessment method that fits the task.',
  'verify': 'Assess the requested output for {chosen} using a method relevant to the task. Return '

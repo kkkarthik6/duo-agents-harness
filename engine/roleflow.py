@@ -3,7 +3,7 @@ import hashlib
 import json
 import secrets
 from pathlib import Path
-from . import config, model_catalog, cli_adapters, agent_failures
+from . import config, model_catalog, cli_adapters, agent_failures, build_order
 
 ROLES = ('lead', 'challenger', 'builder', 'critic')
 ALIASES = {'architect': 'lead', 'analyst': 'lead', 'helper': 'lead', 'scout': 'lead', 'researcher': 'lead',
@@ -142,5 +142,7 @@ def review_prompt(shared, plan_path):
     return ('Review this plan in a fresh session; you did not write it. Inspect source when needed; do not edit the plan or product. '
             'Start with APPROVED or REVISE on its own line. For REVISE, list EVERY required correction now, in this one review, '
             'one per line as `plan step: problem -> fix`, quoting the plan text you object to; hold nothing back for later rounds. '
-            'Tie required corrections to the user goal and current constraints. Keep optional ideas outside the acceptance checks.\n' +
+            'Tie required corrections to the user goal and current constraints. Keep optional ideas outside the acceptance checks. '
+            'Also REVISE a plan without numbered requirements and sub-requirements, per-requirement files and steps, delegation, a final "## Builder prompt" section, '
+            'or one that schedules any test or verification before the functionality is complete.\n' +
             instructions('challenger') + '\n' + shared + '\n# Plan\nRead the plan at `' + plan_path + '`.')
